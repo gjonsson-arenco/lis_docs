@@ -1,0 +1,48 @@
+@baseUrl = http://localhost:3000/v1
+@apiKey = change-me
+
+### Health
+GET {{baseUrl}}/health
+
+### Ready
+GET {{baseUrl}}/ready
+
+### Traditum capabilities
+GET {{baseUrl}}/internal/brokers/traditum/capabilities
+x-internal-api-key: {{apiKey}}
+
+### Traditum eligibility
+POST {{baseUrl}}/internal/brokers/traditum/eligibility
+Content-Type: application/json
+x-internal-api-key: {{apiKey}}
+x-request-id: req-http-001
+x-trace-id: trc-http-001
+
+{
+  "requestId": "REQ-ELIG-001",
+  "traceId": "TRC-ELIG-001",
+  "memberId": "123456",
+  "documentType": "DNI",
+  "documentNumber": "30123456",
+  "payerCode": "OSDE",
+  "planCode": "210",
+  "serviceDate": "2026-03-13"
+}
+
+### Traditum transaction
+POST {{baseUrl}}/internal/brokers/traditum/transaction
+Content-Type: application/json
+x-internal-api-key: {{apiKey}}
+x-request-id: req-http-002
+x-trace-id: trc-http-002
+
+{
+  "requestId": "REQ-TXN-001",
+  "traceId": "TRC-TXN-001",
+  "memberId": "123456",
+  "payerCode": "OSDE",
+  "practiceCode": "890101",
+  "quantity": 1,
+  "amount": 15000,
+  "serviceDate": "2026-03-13"
+}
