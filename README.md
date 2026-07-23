@@ -40,6 +40,10 @@ Documentación del motor de matching clínico basado en FastAPI.
 - **README.md** - Descripción general del clinical matcher
 - **MATCHING_PROCESS.md** - Proceso de matching clínico
 
+### 🚀 [Infra](./infra/)
+Documentación de infraestructura y deploy.
+- **linux-deploy-guide.md** - Guía de deploy on-premise en Linux con Docker (build directo en el server, sin registry), basada en la experiencia real del primer deploy on-premise
+
 ## Proyectos del Workspace
 
 | Proyecto | Descripción | Tecnología |
