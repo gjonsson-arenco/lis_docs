@@ -44,6 +44,10 @@ Documentación del motor de matching clínico basado en FastAPI.
 Documentación de infraestructura y deploy.
 - **linux-deploy-guide.md** - Guía de deploy on-premise en Linux con Docker (build directo en el server, sin registry), basada en la experiencia real del primer deploy on-premise
 
+### 📝 Documentos transversales
+- **[FUTURE_IMPROVEMENTS.md](./FUTURE_IMPROVEMENTS.md)** - Backlog vivo de mejoras futuras agrupado por módulo, con prioridad y ubicación exacta de cada cambio.
+- **PERFORMANCE_ANALYSIS_2026_07_30.md** - Análisis de performance del 30-07-2026.
+
 ## Proyectos del Workspace
 
 | Proyecto | Descripción | Tecnología |
