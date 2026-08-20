@@ -456,6 +456,37 @@ Notas sobre `requirements`:
 - Si `requirements` se envia en `PATCH`, backend reemplaza la lista actual completa.
 - `value` es opcional y se usa para requerimientos de tipo `data`.
 
+### Resolucion de requerimientos
+
+- `POST /api/v1/admission-requirements/resolve`
+
+Devuelve los requerimientos de los estudios enviados, deduplicados y con la
+lista de estudios que los originan. Cada item trae `category`
+(`indication|administrative|technical`), `type` (`info|data|printable`),
+`severity` (solo en `indication`) y `layout`.
+
+Body opcional `categories: []` para acotar el alcance; si se omite devuelve
+todas las categorias. Admision pide `["administrative"]` y toma de muestras
+`["technical"]`.
+
+### Documento de un requerimiento imprimible
+
+- `GET /api/v1/admission-requirements/{requirementType}/document`
+
+Devuelve el PDF **inline** (`Content-Type` del archivo, `Content-Disposition:
+inline`), autenticado igual que el resto de la API — no es una URL firmada, asi
+que hay que consumirlo como blob y no linkearlo directo.
+
+El archivo se resuelve desde `layout.source.disk` + `layout.source.path`, con lo
+cual pasar `DOCUMENTS_DISK=s3` en produccion no requiere cambios de codigo. Los
+PDFs de indicaciones viven en la carpeta `requirements/` del disco de
+documentos (`storage/app/private/requirements` con el disco `local`).
+
+Errores:
+- `422` si el requerimiento no es `printable`, o si su layout es `report`
+  (apunta a un servicio externo) en lugar de `document`.
+- `404` si el requerimiento es imprimible pero el archivo no esta en el disco.
+
 ### Response (200)
 
 Mismo formato que `POST /api/v1/orders`.

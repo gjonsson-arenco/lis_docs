@@ -31,6 +31,7 @@ Para cualquier `{catalog}`:
 - `only_trashed` boolean
 - `include[]` string (relaciones permitidas por catalogo)
 - `include` string (formato CSV opcional: `rel1,rel2`)
+- `category` string (solo `requirement-types`: `indication|administrative|technical`)
 
 ### Query params (show)
 - `with_trashed` boolean
@@ -65,7 +66,7 @@ Para cualquier `{catalog}`:
 
 ## 4) Includes allowed by catalog
 
-- `study-types`: `workingArea`, `testTypes`, `practiceTypes`
+- `study-types`: `workingArea`, `testTypes`, `sampleTypes`, `practiceTypes`, `requirementTypes`
 - `sample-types`: `testTypes`, `containerTypes`
 - `origins`: `site`
 - `insurance-types`: `plans`, `valuationProvider`
@@ -144,9 +145,39 @@ Nota: en `PATCH` todos los campos son opcionales (`sometimes`), en `POST` los ma
 - `description` (optional)
 - `preparation_time` (optional, json/array)
 - `parent_study_type_ids` (optional, json/array)
+- `sample_type_ids` (optional, array de ids; reemplaza el pivot completo)
+- `requirement_type_ids` (optional, array de ids; reemplaza el pivot completo)
 - `sort_order` (optional)
 - `working_area_id` (required)
 - `is_active` (optional)
+
+Los pivots `sample_type_ids` y `requirement_type_ids` se sincronizan con `sync()`:
+si la clave viene en el body reemplaza la relacion entera, y si se omite (tipico
+en `PATCH`) la relacion queda intacta. Los endpoints puntuales de la seccion 5
+siguen disponibles para agregar/quitar de a uno.
+
+### requirement-types
+- `code` (required, unique)
+- `version` (optional, default 1)
+- `name` (required)
+- `description` (optional)
+- `category` (optional, `indication|administrative|technical`, default `administrative`)
+- `type` (optional, `info|data|printable`, default `info`)
+- `severity` (optional, `info|warning|critical`, solo para `indication`)
+- `layout` (optional, json)
+- `is_active` (optional)
+
+Categorias:
+
+| categoria | `type` admitidos | severidad | donde se releva |
+|---|---|---|---|
+| `indication` | `info`, `printable` | si | instruccion al paciente |
+| `administrative` | `info`, `data`, `printable` | no | admision |
+| `technical` | `info`, `data`, `printable` | no | toma de muestras |
+
+Combinaciones invalidas devuelven `422`: un `indication` de tipo `data`, o una
+`severity` sobre cualquier categoria que no sea `indication`. En `PATCH` la
+validacion corre sobre el estado resultante, no solo sobre el body enviado.
 
 ### method-types
 - `code` (required, unique)
