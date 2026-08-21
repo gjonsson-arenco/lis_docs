@@ -188,12 +188,8 @@ Tres cosas que valen para varios de ellos:
   no para una base con datos reales.
 - **Los archivos que no están en el repo no llegan con el deploy.** Los PDF de
   indicaciones viven bajo `storage/`, que está gitignoreado, así que ni el
-  clone ni el build los traen. Y copiarlos al `storage/` del repo en el host
-  tampoco alcanza: el compose monta ahí un volumen de Docker, así que el
-  contenedor no ve ese directorio. Por eso `copy-requirements.sh` termina con
-  un `docker cp` al contenedor (destino
-  `/var/www/storage/app/private/requirements`, que es el disk `local` de
-  Laravel + la carpeta que usa el seeder de requisitos).
+  clone ni el build los traen. Van a `/opt/lis/storage/requirements` en el
+  host, que el compose bind-montea en el contenedor — ver §9.1.
 
 ---
 
@@ -523,6 +519,52 @@ al host. Dos formas de habilitar acceso externo con un cliente de escritorio:
   simple, mismo modelo de exposición que el resto de los servicios de la app si
   ya están publicados igual y el único control de acceso real es la VPN — pero
   es una superficie más si después se refuerza el firewall.
+
+### 9.1 Archivos que la app necesita y no están en el repo
+
+Caso concreto: los PDF de indicaciones que el backend le sirve al paciente.
+No están versionados (viven bajo `storage/`, gitignoreado), así que no los trae
+ni el clone ni el build de la imagen. Hay tres lugares posibles y solo uno es
+cómodo:
+
+| Dónde | Sobrevive rebuild | Sobrevive `down -v` | Se ve con `ls` en el host |
+|---|---|---|---|
+| Dentro de la imagen (`COPY`) | ❌ hay que rebuildear para cambiar uno | — | ❌ |
+| Volumen nombrado (`docker cp`) | ✅ | ❌ | ❌ (hay que entrar al volumen) |
+| **Bind mount de un dir del host** | ✅ | ✅ | ✅ |
+
+Un rebuild **no** borra un volumen nombrado — eso es un mito común; lo que borra
+volúmenes es `docker compose down -v` o un `docker volume rm`. Pero el volumen
+igual es incómodo: para meter o revisar un archivo hay que pasar por
+`docker cp`/`docker exec`, y es fácil que quede afuera de los backups del server
+porque no está en ningún path "normal".
+
+Por eso los PDF van a un directorio del host bind-monteado dentro del volumen de
+storage:
+
+```yaml
+volumes:
+  - backend-storage:/var/www/storage
+  - /opt/lis/storage/requirements:/var/www/storage/app/private/requirements:ro
+```
+
+Detalles que importan:
+
+- **Se puede montar adentro de otro mount.** Docker aplica los mounts por
+  profundidad de path, así que el bind pisa solo esa subcarpeta y el resto de
+  `storage/` (logs, cache, `documents/` que sí escribe la app) sigue en el
+  volumen.
+- **`:ro` solo si la app no escribe ahí.** En este caso el backend únicamente
+  lee esos archivos para servirlos; no hay endpoint que suba printables. Si se
+  agrega uno, hay que sacar el `:ro` o el upload falla con "Read-only file
+  system".
+- **Permisos**: el contenedor corre como `www-data` (uid 82 en las imágenes
+  Alpine de PHP), que no es el usuario que copió los archivos. Alcanza con
+  `chmod -R a+rX` sobre el directorio del host — lectura y traverse, sin marcar
+  los PDF como ejecutables.
+- **Crear el directorio ANTES del primer `up`.** Si no existe, Docker lo crea
+  `root:root` y después el usuario de deploy no puede escribir ahí (y el error
+  que se ve es un permission denied en la copia, lejos de la causa).
 
 ---
 
