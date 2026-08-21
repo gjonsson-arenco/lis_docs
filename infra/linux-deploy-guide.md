@@ -166,6 +166,35 @@ clone, `redeploy.sh` corta con el path exacto antes de intentar nada.
 Los scripts se versionan con permiso de ejecución (`git update-index --chmod=+x`).
 Si igual da `Permission denied` en el server, correrlo como `bash scripts/redeploy.sh`.
 
+### 5.2 Otros scripts de operación (`lis-infra/scripts/`)
+
+| Script | Dónde se corre | Para qué |
+|---|---|---|
+| `clone-repos.sh` | server | Clona los repos que falten con el mapeo carpeta → repo → rama (§3) |
+| `redeploy.sh` | server | Actualización normal: pull + build + `up -d` + migrations + reload (§5.1) |
+| `db-fresh.sh` | server | `migrate:fresh` (**borra todo**), opcionalmente `--seed` |
+| `seed-cebac.sh` | server | Corre `CebacSeeder` (o un seeder puntual) sin tocar el schema |
+| `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
+| `copy-requirements.sh` | **tu máquina** | Sube los PDF de indicaciones al volumen del backend |
+
+Tres cosas que valen para varios de ellos:
+
+- **Todo lo que toque la tabla `rules` por fuera del ABM tiene que terminar en
+  un reload del engine** (`db-fresh.sh`, `seed-cebac.sh` y `redeploy.sh` ya lo
+  hacen llamando a `reload-rules-cache.sh`). Si no, el engine sigue evaluando
+  con el catálogo que tenía en memoria.
+- **`db-fresh.sh` pide escribir el nombre de la base para confirmar** (`--yes`
+  lo saltea). Dropea todas las tablas: es para preparar/rearmar una instancia,
+  no para una base con datos reales.
+- **Los archivos que no están en el repo no llegan con el deploy.** Los PDF de
+  indicaciones viven bajo `storage/`, que está gitignoreado, así que ni el
+  clone ni el build los traen. Y copiarlos al `storage/` del repo en el host
+  tampoco alcanza: el compose monta ahí un volumen de Docker, así que el
+  contenedor no ve ese directorio. Por eso `copy-requirements.sh` termina con
+  un `docker cp` al contenedor (destino
+  `/var/www/storage/app/private/requirements`, que es el disk `local` de
+  Laravel + la carpeta que usa el seeder de requisitos).
+
 ---
 
 ## 6. Manejo de variables de entorno
