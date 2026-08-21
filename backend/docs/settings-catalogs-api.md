@@ -317,3 +317,56 @@ DELETE /api/stations/{id}
     "parameters": { "key": "value" } // Opcional
 }
 ```
+
+## Servicios por origen y tipo de paciente
+
+Un servicio es una sala o sector de una institución concreta ("UTI Adultos",
+"2do Piso", "Guardia"), así que no aplica a cualquier admisión: depende de
+dónde está el paciente (origen) y de cómo se lo atiende (tipo de paciente /
+`order_types`). La tabla `service_availabilities` guarda las combinaciones
+permitidas.
+
+**Sin configuración no hay servicio.** Un par (origen, tipo de paciente) sin
+filas no ofrece ningún servicio: admisión deja el campo desactivado y la orden
+se graba con `service_id` en `null`. No existe un fallback permisivo.
+
+### Consulta desde admisión
+```
+GET /api/v1/services/available?origin_id={id}&order_type_id={id}
+```
+```json
+{
+  "data": [
+    { "id": 5, "code": "UTI", "name": "UTI Adultos" }
+  ]
+}
+```
+Una lista vacía es una respuesta válida y significa "esta combinación no lleva
+servicio".
+
+### Configuración (ABM)
+```
+GET /api/v1/admin/service-availability
+PUT /api/v1/admin/service-availability
+```
+`GET` devuelve `origins`, `order_types`, `services` y `matrix` — esta última
+sólo con las celdas que ofrecen al menos un servicio.
+
+`PUT` reemplaza el conjunto completo de una celda; un `service_ids` vacío la
+vacía:
+```json
+{ "origin_id": 2, "order_type_id": 1, "service_ids": [5, 12] }
+```
+
+### Validación de órdenes
+`POST /api/v1/orders` y `PATCH /api/v1/orders/{order}` rechazan un
+`service_id` que no esté disponible para el par efectivo de la orden. En el
+`PATCH` el par se resuelve contra la orden ya guardada, de modo que cambiar
+sólo el origen puede invalidar el servicio que la orden ya tenía.
+
+### Carga inicial
+`CebacServiceAvailabilitySeeder` propone un punto de partida clasificando los
+servicios del legacy por tipo (internación, guardia, ambulatorio, domicilio,
+derivación, hemoterapia, neuma) y ofreciéndolos en los orígenes que tienen
+sede propia. El legacy nunca registró esta relación: la propuesta se corrige
+desde el ABM.
