@@ -56,13 +56,15 @@ Documentación de infraestructura y deploy.
 | **lis-front-monorepo** | Frontend web con múltiples módulos | Next.js 14, TypeScript, Mantine UI |
 | **lis-broker-gateway** | Gateway adapter para brokers de seguros | NestJS, TypeScript |
 | **lis-clinical-matcher** | Motor de matching de datos clínicos | FastAPI, Python |
+| **lis-rules-engine** | Motor de reglas de facturación (servicio HTTP) | Fastify, TypeScript |
 
 ## Acceso a Repositorios
 
-- Backend: https://github.com/gjonsson-arenco/lis_backend
-- Frontend: https://github.com/gjonsson-arenco/lis_frontend
-- Broker Gateway: https://github.com/gjonsson-arenco/lis_broker_gateway
+- Backend: https://github.com/gjonsson-arenco/lis-backend
+- Frontend: https://github.com/gjonsson-arenco/lis-front-end (carpeta local: `lis-front-monorepo`)
+- Broker Gateway: https://github.com/gjonsson-arenco/lis-broker-gateway
 - Clinical Matcher: https://github.com/gjonsson-arenco/lis_clinical_matcher
+- Rules Engine: https://github.com/gjonsson-arenco/lis-rules-engine
 - Documentation: https://github.com/gjonsson-arenco/lis_docs
 
 ## Inicio Rápido
@@ -80,6 +82,7 @@ O de forma individual:
 - **Frontend**: `pnpm dev` en lis-front-monorepo/
 - **Broker Gateway**: `pnpm start:dev` en lis-broker-gateway/
 - **Clinical Matcher**: `python -m uvicorn app.main:app --reload` en lis-clinical-matcher/
+- **Rules Engine**: `pnpm dev` en lis-rules-engine/
 
 ## Notas
 

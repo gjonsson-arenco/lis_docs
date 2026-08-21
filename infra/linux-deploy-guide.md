@@ -1,7 +1,7 @@
 # Guía de deploy on-premise en Linux (Docker, sin registry)
 
 Guía práctica para desplegar el stack de LIS (backend, broker-gateway, clinical-matcher,
-frontend + MySQL/Redis) en un server Linux on-premise, con build directo en el server
+rules-engine, frontend + MySQL/Redis) en un server Linux on-premise, con build directo en el server
 (sin registry de imágenes). Escrita a partir de la experiencia real del primer deploy
 (cliente CEBAC) — cada sección de "errores comunes" documenta un bug real que salió en
 ese proceso, no hipótesis.
@@ -19,10 +19,11 @@ Repo de infra de referencia: `lis-infra` (rama `main` = template genérico, una 
 | `broker-gateway` | NestJS/TypeScript | 3001 | `/v1/health` (⚠️ versionado, ver §6.4) |
 | `frontend` | Next.js (App Router, standalone) | 3000 | `/health` |
 | `clinical-matcher` | FastAPI/Python | 8001 | `/health` |
+| `rules-engine` | Fastify/TypeScript | 3010 | `/health` |
 | `mysql` | MySQL 8.0 | 3306 | — |
 | `redis` | Redis 7.4 | 6379 | — |
 
-`mysql`/`redis` viven en el compose "base" (infraestructura compartida); los 4
+`mysql`/`redis` viven en el compose "base" (infraestructura compartida); los 5
 servicios de la app viven en un compose "prod" aparte, que depende del primero.
 Ambos se levantan **en una sola invocación** (`-f base.yml -f prod.yml`), no por
 separado — si `prod.yml` tiene `depends_on: mysql` pero `mysql` está definido en
@@ -60,6 +61,20 @@ Verificá con `git remote -v` en tu clon local antes de armar los comandos de cl
 para el server; en este proyecto puntual, tres de los cuatro nombres de repo
 diferían de lo que decía la documentación interna (guión vs. guión bajo, nombre
 distinto al de la carpeta).
+
+Para no repetir ese error a mano, el mapeo carpeta → repo → rama está escrito en
+`lis-infra/scripts/clone-repos.sh`, que clona lo que falte y deja lo que ya está
+como está:
+
+```bash
+/opt/lis/lis-infra/scripts/clone-repos.sh
+# por HTTPS en vez de SSH:
+LIS_GIT_BASE=https://github.com/<org> /opt/lis/lis-infra/scripts/clone-repos.sh
+```
+
+Es idempotente (se puede correr todas las veces que quieras) y avisa si un repo
+quedó parado en una rama distinta a la esperada. Al sumar un servicio nuevo al
+stack, agregarlo también a ese mapa.
 
 Red Docker compartida, una sola vez:
 
@@ -115,6 +130,41 @@ Ver estado y logs:
 docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
 docker compose -f docker-compose.yml -f docker-compose.prod.yml logs -f <servicio>
 ```
+
+### 5.1 Actualizaciones posteriores: `scripts/redeploy.sh`
+
+Los comandos de arriba son para el **primer** levantamiento. Para actualizar un
+stack que ya está corriendo existe `lis-infra/scripts/redeploy.sh` (vive en la
+rama del cliente, `deploy/<cliente>`, no en `main`). Se corre parado en
+cualquier lado — resuelve todos los paths solo:
+
+```bash
+/opt/lis/lis-infra/scripts/redeploy.sh
+```
+
+Qué hace, en orden:
+
+1. `git pull --ff-only` de `lis-infra` y de cada repo de servicio, anotando
+   cuáles cambiaron de HEAD.
+2. Buildea **solo** las imágenes de los repos con commits nuevos (exportando
+   antes el `.env.prod` del frontend si hay que rebuildearlo, ver §6.2).
+3. `docker compose up -d` sobre **todo** el stack: Compose recrea únicamente lo
+   que difiere y deja el resto corriendo. Tiene que ser sobre todo el stack, no
+   solo sobre los servicios que cambiaron — si no, un servicio nuevo en el
+   compose cuyo repo no tuvo commits nunca se crea, y los cambios de compose sin
+   cambio de código (env vars, puertos) no se aplican.
+4. Migrations del backend si el backend cambió.
+5. `restart` de `nginx`/`backend-proxy` (releen config montada y re-resuelven el
+   DNS de los upstreams recreados).
+6. Reload del catálogo de reglas del `rules-engine` (§7.6).
+
+**Al sumar un servicio nuevo al stack hay que tocar tres lugares**: el
+`docker-compose.prod.yml`, el mapa `REPO_SERVICE` de `redeploy.sh` (repo → nombre
+del servicio) y el mapa de `clone-repos.sh` (carpeta → repo → rama). Si falta el
+clone, `redeploy.sh` corta con el path exacto antes de intentar nada.
+
+Los scripts se versionan con permiso de ejecución (`git update-index --chmod=+x`).
+Si igual da `Permission denied` en el server, correrlo como `bash scripts/redeploy.sh`.
 
 ---
 
@@ -290,8 +340,83 @@ Dos variantes vistas en el mismo deploy:
   healthcheck no dio el resultado esperado"; son cosas relacionadas pero no
   idénticas, y vale la pena chequear la app real (`curl /` o la ruta que
   corresponda) antes de asumir que está caída.
+- Un tercer caso, más sutil, apareció al sumar `rules-engine`: el one-liner de
+  healthcheck que usan varios servicios del stack
+  (`node -e "require('http').get(url, (r) => {if (r.statusCode !== 200) throw ...})"`)
+  **nunca consume la respuesta ni cierra el socket**, así que el proceso queda
+  vivo hasta que el server corta la conexión por keep-alive. Con Express/Nest
+  (keep-alive de 5s) el comando termina justo debajo del `timeout: 10s` y el
+  healthcheck pasa de pura casualidad; con Fastify (72s) el comando **siempre**
+  excede el timeout y el contenedor queda `unhealthy` con la app respondiendo
+  perfecto — y si nginx depende de ese servicio con `condition: service_healthy`,
+  nginx no arranca nunca. Versión correcta:
 
-### 7.5 Gestor de paquetes: plataforma pineada vs. versión real de quien corre el comando
+  ```js
+  node -e "require('http').get(url,(r)=>{r.resume();r.on('end',()=>process.exit(r.statusCode===200?0:1))}).on('error',()=>process.exit(1))"
+  ```
+
+  Medirlo, no asumirlo: `time docker exec <cont> <comando-del-healthcheck>` — si
+  tarda segundos para un endpoint que responde en milisegundos, es esto.
+
+### 7.5 Cliente generado en build-time (Prisma) + pnpm: el path tiene un hash
+
+Un ORM que genera código (Prisma, y cualquier equivalente) necesita que ese
+código exista **en la imagen que corre la app**, no solo en el stage donde se
+compiló. Con pnpm la trampa es dónde queda: el cliente se escribe dentro del
+store virtual, en un directorio cuyo nombre incluye un hash de los peers
+resueltos (`node_modules/.pnpm/@prisma+client@6.19.2_prisma@…_typescript@…/`).
+Ese hash **cambia entre un install completo y uno `--prod`** (typescript es
+devDependency), así que un `COPY --from=builder` del directorio generado apunta
+a una ruta que en la imagen final no existe — y el error recién aparece al
+arrancar el contenedor, no al buildear.
+
+Dos síntomas relacionados en el mismo Dockerfile:
+
+- Si el cliente **no** está generado en el stage de build, `tsc` falla con
+  `TS2305: Module '@prisma/client' has no exported member 'PrismaClient'` (los
+  tipos también son generados). O sea: hay que generar en los dos stages, y son
+  generaciones distintas.
+- Si el cliente no está generado en el stage de runtime, el import explota al
+  arrancar (`@prisma/client did not initialize yet`) y el contenedor queda en
+  restart loop.
+
+Fix usado en `lis-rules-engine/Dockerfile.prod`: instalar `--prod` en el stage
+final y generar el cliente **ahí**, con el CLI por `pnpm dlx prisma@<versión del
+lockfile>` (es devDependency, no queda en la imagen). Bonus: al generarse en la
+misma imagen que lo ejecuta, el binary target del query engine sale correcto
+(`linux-musl-openssl-3.0.x` en Alpine) sin declarar `binaryTargets` a mano.
+
+### 7.6 Un servicio que cachea en memoria el catálogo de otro
+
+Patrón: el servicio B arranca, le pide a A un catálogo por HTTP, lo cachea en
+memoria y sirve desde ahí. Tres consecuencias para el deploy, todas reales en
+`rules-engine` (que lee el catálogo de reglas del backend):
+
+1. **El orden de arranque importa de verdad.** El warmup reintenta N veces y
+   después se rinde; si A todavía no podía servir el catálogo (migrations a
+   medio correr, por ejemplo), B queda arriba y `healthy` — su `/health` no
+   sabe nada del catálogo — pero contestando error a cada request real.
+   `depends_on: condition: service_healthy` no alcanza si el healthcheck del
+   otro servicio solo mira que el puerto escuche.
+2. **La cache no se refresca sola.** Si el diseño es "TTL + invalidación por
+   push", pasado el TTL el servicio sigue devolviendo la copia vieja hasta que
+   alguien le pega al endpoint de reload. Ojo con a cuál: el engine tiene dos
+   (`/api/v1/billing/reload`, que recarga el catálogo que le pide al backend, y
+   `/api/v1/rules/reload`, que recarga el catálogo de su propio Postgres — el
+   que este deploy no tiene). El backend le pegaba al segundo, así que cada
+   edición de regla en el ABM se respondía con un 500 que nadie miraba y el
+   cambio no llegaba nunca a producción. Como la notificación es
+   fire-and-forget, un endpoint equivocado es invisible salvo que se loguee la
+   respuesta fallida — hacerlo.
+3. **Por eso el redeploy fuerza el reload.** `scripts/redeploy.sh` le pega a
+   `/api/v1/billing/reload` después de recrear contenedores y correr
+   migrations. Es la única forma barata de garantizar que el estado en memoria
+   coincida con la base después de un deploy.
+
+Antes de dar por bueno un deploy con este patrón, probar el flujo real de punta
+a punta (una valorización completa), no solo `/health` de cada contenedor.
+
+### 7.7 Gestor de paquetes: plataforma pineada vs. versión real de quien corre el comando
 
 Un `composer.lock` (o cualquier lockfile equivalente) puede terminar con
 paquetes que requieren una versión de runtime más nueva que la que declara el
@@ -382,6 +507,8 @@ al host. Dos formas de habilitar acceso externo con un cliente de escritorio:
 | Contenedor en `Restarting (1)` loop | Revisar `docker logs <contenedor>` — buscar `EACCES`/`Permission denied` (§7.3) o error de arranque de la app | — |
 | Contenedor `Up` pero `(unhealthy)` | El proceso puede estar sirviendo bien — probar la ruta real de la app, no asumir que está caída. Si la ruta de health no existe o está mal versionada, es el healthcheck el que está mal, no la app | §7.4 |
 | `command not found` raro al hacer `source` de un `.env` | CRLF o valor sin comillas con espacios | §6.5 |
+| Toda valorización devuelve 500 aunque `rules-engine` esté `healthy` | La cache del catálogo de reglas quedó vacía (warmup falló al arrancar) o está calentada con otro `tenantId` | §7.6 — forzar `/api/v1/billing/reload` |
+| Cambios de reglas en el ABM no se ven en producción | La cache del `rules-engine` no se refresca sola: mirar en el log del backend el warning `Rules-engine reload responded with an error` (endpoint equivocado, token, engine caído) | §7.6 |
 | Dos servicios no logran autenticarse entre sí con un token/secreto compartido | Verificar que el valor coincida exactamente en ambos `.env` — típicamente diverge por edición manual en momentos distintos | §6.4 |
 
 ---
