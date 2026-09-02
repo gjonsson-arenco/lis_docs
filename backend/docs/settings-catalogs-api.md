@@ -134,14 +134,32 @@ Nota: en `PATCH` todos los campos son opcionales (`sometimes`), en `POST` los ma
 
 ### study-types
 - `code` (required, unique)
+- `class` (optional, `study` | `routine`, default `study`)
 - `version` (optional, default 1)
 - `name` (required)
 - `description` (optional)
 - `preparation_time` (optional, json/array)
-- `parent_study_type_ids` (optional, json/array)
+- `component_study_type_ids` (optional, array de ids; los estudios que componen la rutina, en orden. Reemplaza el pivot completo)
+- `triggered_study_type_ids` (optional, array de ids; los estudios que este arrastra. Reemplaza el pivot completo)
 - `sort_order` (optional)
-- `working_area_id` (required)
+- `working_area_id` (required para `class=study`; para una rutina lo resuelve el backend)
 - `is_active` (optional)
+- `is_visible` (optional, default true, solo `class=study`)
+
+`is_active` y `is_visible` son dos ejes distintos. Un estudio inactivo no entra
+en una orden por ningun camino: ni buscado, ni como componente de una rutina, ni
+disparado por otro estudio. Uno no visible si entra, pero solo tirado por una
+rutina o por un disparo: buscarlo y cargarlo suelto no se puede.
+
+Filtro de listado: `?class=routine` devuelve solo rutinas, `?class=study` solo
+estudios.
+
+Una rutina no se procesa ni se informa: al guardarla con `class=routine` el
+backend limpia metodo, preparacion, dias de proceso, muestras, requerimientos y
+disparos, porque de ella solo interesan codigo, nombre, activo y su
+composicion. Una rutina nunca llega a ser un `Study` de una orden: se reemplaza
+por los estudios que la componen, cada uno con `source=routine` y
+`source_study_type_id` apuntando a la rutina.
 
 ### method-types
 - `code` (required, unique)

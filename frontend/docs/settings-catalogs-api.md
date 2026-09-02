@@ -140,16 +140,31 @@ Nota: en `PATCH` todos los campos son opcionales (`sometimes`), en `POST` los ma
 
 ### study-types
 - `code` (required, unique)
+- `class` (optional, `study` | `routine`, default `study`)
 - `version` (optional, default 1)
 - `name` (required)
 - `description` (optional)
 - `preparation_time` (optional, json/array)
-- `parent_study_type_ids` (optional, json/array)
+- `component_study_type_ids` (optional, array de ids; los estudios que componen la rutina, en orden. Reemplaza el pivot completo)
+- `triggered_study_type_ids` (optional, array de ids; los estudios que este arrastra. Reemplaza el pivot completo)
 - `sample_type_ids` (optional, array de ids; reemplaza el pivot completo)
 - `requirement_type_ids` (optional, array de ids; reemplaza el pivot completo)
 - `sort_order` (optional)
-- `working_area_id` (required)
+- `working_area_id` (required para `class=study`; para una rutina lo resuelve el backend)
 - `is_active` (optional)
+- `is_visible` (optional, default true, solo `class=study`)
+
+`is_active` y `is_visible` son dos ejes distintos. Un estudio inactivo no se
+ofrece ni entra por ningun camino. Uno no visible no se ofrece en la busqueda de
+admision, pero sigue entrando si lo trae una rutina o si otro estudio lo
+dispara — por eso el catalogo de admision los sigue trayendo: hacen falta para
+nombrarlos en la lista de la orden.
+
+Listado: `?class=routine` / `?class=study` filtra por clase, e
+`include=components,triggeredStudyTypes` trae la composicion y los disparos.
+
+De una rutina el ABM solo edita codigo, nombre, activo y los estudios que la
+componen: el resto de la configuracion no aplica y el backend la limpia.
 
 Los pivots `sample_type_ids` y `requirement_type_ids` se sincronizan con `sync()`:
 si la clave viene en el body reemplaza la relacion entera, y si se omite (tipico
