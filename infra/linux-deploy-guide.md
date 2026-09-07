@@ -20,14 +20,29 @@ Repo de infra de referencia: `lis-infra` (rama `main` = template genérico, una 
 | `frontend` | Next.js (App Router, standalone) | 3000 | `/health` |
 | `clinical-matcher` | FastAPI/Python | 8001 | `/health` |
 | `rules-engine` | Fastify/TypeScript | 3010 | `/health` |
+| `chat-service` | NestJS + Socket.io | 3002 | `/health` |
 | `mysql` | MySQL 8.0 | 3306 | — |
 | `redis` | Redis 7.4 | 6379 | — |
 
-`mysql`/`redis` viven en el compose "base" (infraestructura compartida); los 5
+`mysql`/`redis` viven en el compose "base" (infraestructura compartida); los 6
 servicios de la app viven en un compose "prod" aparte, que depende del primero.
 Ambos se levantan **en una sola invocación** (`-f base.yml -f prod.yml`), no por
 separado — si `prod.yml` tiene `depends_on: mysql` pero `mysql` está definido en
 el otro archivo, Compose no resuelve la dependencia entre invocaciones separadas.
+
+Dos particularidades del `chat-service`, que es el único que se sale del molde:
+
+- **Tiene su propia base** (`lis_chat`) dentro de la misma instancia de MySQL,
+  con su propio usuario. No la crea el contenedor de MySQL: los scripts de
+  `/docker-entrypoint-initdb.d` solo corren con el datadir vacío, y en un server
+  ya desplegado nunca vuelven a correr. La crea `scripts/create-chat-db.sh`, que
+  `redeploy.sh` llama en cada deploy (§5.2). Las tablas sí se crean solas: el
+  servicio corre sus migraciones al arrancar.
+- **No está en el `depends_on` de nginx**, a diferencia de los otros cinco.
+  nginx no arranca hasta que todos sus `depends_on` estén healthy, así que un
+  chat roto dejaría caído el sitio entero; su `server` block resuelve el
+  upstream por DNS en cada request (`proxy_pass` con variable + `resolver`), así
+  que si el chat no está solo se cae su puerto.
 
 ---
 
@@ -174,6 +189,7 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `redeploy.sh` | server | Actualización normal: pull + build + `up -d` + migrations + reload (§5.1) |
 | `db-fresh.sh` | server | `migrate:fresh` (**borra todo**), opcionalmente `--seed` |
 | `seed-cebac.sh` | server | Corre `CebacSeeder` (o un seeder puntual) sin tocar el schema |
+| `create-chat-db.sh` | server | Crea la base y el usuario del chat en MySQL (idempotente; lo llama `redeploy.sh`) |
 | `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
 | `copy-requirements.sh` | **tu máquina** | Sube los PDF de indicaciones al volumen del backend |
 
