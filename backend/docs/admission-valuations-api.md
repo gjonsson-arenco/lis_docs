@@ -93,6 +93,12 @@ Este endpoint soporta un flujo unico de orquestacion:
   - **Status individual de cada práctica (en el objeto de la práctica):**
     - `passed`: practica es particular, o no requiere autorización y el financiador/plan no requieren voucher.
     - `pending`: practica requiere autorización, o el financiador/plan requieren voucher.
+  - **Voucher por práctica:** cuando la cobertura o el plan requieren voucher, cada práctica valorizada
+    hereda `requires_voucher=true`. Un voucher no salda la orden entera: al subirlo, el operador marca
+    qué prácticas salda (`documents[].practice_type_ids`). Las prácticas que requieren voucher y no quedan
+    saldadas se cobran como no cubiertas (`is_not_covered=true`: el paciente paga el precio convenido y la
+    práctica ya no pide voucher ni autorización). Un documento sin `practice_type_ids` salda todas las
+    prácticas (compatibilidad con clientes que sólo mandaban `practice_type_id`).
 
 ### Response (200)
 
