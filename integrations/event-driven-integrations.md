@@ -61,6 +61,59 @@ orden. Con el stub, la trazabilidad queda en `received` unos segundos después
 - **La emisión nunca falla la orden.** Si Redis no está, el backend loguea y
   la orden se crea igual; se reenvía a mano desde el LIS.
 
+## Mapeo de códigos de catálogo
+
+Cada proveedor habla con sus propios códigos (`Estudios.e_codigo`,
+`Medicos.m_codigo`…). La equivalencia se **administra desde el LIS** y el
+backend la resuelve al emitir el evento, así lo que salió queda en
+`payload_to_send` y corregir un mapeo + **Reintentar** alcanza.
+
+```
+integration_providers       code, name, is_active, policies {entity: política}, settings {clave: valor}
+integration_code_mappings   provider_id, entity, lis_id, external_code, is_active, notes
+```
+
+Entidades mapeables: `study_type`, `test_type`, `sample_type`, `physician`
+(su "código LIS" es la matrícula nacional), `service`, `origin`,
+`insurance_type`, `insurance_plan`, `identification_type`, `order_type`.
+
+Política por entidad para lo que **no** tiene equivalencia:
+
+| Política | Qué viaja | Para qué |
+| --- | --- | --- |
+| `passthrough` | el código del LIS | catálogos que coinciden (Labcore heredó los de CEBAC) |
+| `omit` | nada | datos opcionales para el proveedor (el médico, hoy) |
+| `fail` | nada, y el registro va en `unmapped` | el adapter rechaza la orden nombrando lo que falta |
+
+El bloque que viaja en el evento, por proveedor activo:
+
+```json
+"mappings": {
+  "labcore": {
+    "policies": { "study_type": "passthrough", "physician": "omit", … },
+    "settings": { "patient_type_code": null, "priority_code_urgent": null, … },
+    "codes": { "study_type": { "551": "660015" }, "physician": { "2": null }, … },
+    "unmapped": { "physician": [ { "id": 2, "code": "3894", "name": "…" } ] }
+  }
+}
+```
+
+Administración (`integrations.manage`), bajo `/api/v1/admin/integrations`:
+
+| Método y ruta | Para qué |
+| --- | --- |
+| `GET /providers` | Proveedores con política por entidad, settings y cuántos mapeos tiene cada entidad. `meta.entities` lista las entidades. |
+| `POST /providers`, `PATCH /providers/{id}` | Alta y edición (`policies`, `settings`, `is_active`). |
+| `GET /providers/{id}/mappings/{entity}?search=&unmapped=1&include_inactive=` | El catálogo del LIS con su equivalencia al lado, paginado. `unmapped=1` es la lista de lo que falta. |
+| `PUT /providers/{id}/mappings/{entity}` | Upsert en lote `items: [{lis_id, external_code, is_active?, notes?}]`; `external_code` vacío borra. |
+| `DELETE /providers/{id}/mappings/{entity}/{lisId}` | Borra una. |
+| `POST /providers/{id}/mappings/{entity}/copy-lis-codes` | Deja el código del LIS como equivalencia en todo lo no mapeado. |
+| `POST /providers/{id}/mappings/{entity}/import` (`file`) | CSV `lis_code,external_code[,notes]` (o `lis_id`). Devuelve cargados y rechazados con línea y motivo. |
+| `GET /providers/{id}/mappings/{entity}/export` | CSV con el catálogo y su equivalencia. |
+
+`IntegrationProvidersSeeder` deja a Labcore con `passthrough` en todo y
+`omit` en médico.
+
 ## Estados de `order_integration_logs`
 
 ```
@@ -86,7 +139,7 @@ a la vista.
 | Qué falló | Qué pasa |
 | --- | --- |
 | El adapter/proveedor no responde o devuelve 5xx/408/429 | El orchestrator reintenta (`DISPATCH_MAX_ATTEMPTS`, backoff exponencial desde `DISPATCH_BACKOFF_BASE_MS`) y cierra en `error` con `SERVICE_UNAVAILABLE` / `TIMEOUT`. |
-| El adapter devuelve 422 (`VALIDATION_ERROR`, `REJECTED_BY_PROVIDER`) | `error` sin reintentar: hay que corregir la orden y reenviar. |
+| El adapter devuelve 422 (`VALIDATION_ERROR`, `REJECTED_BY_PROVIDER`, `PROVIDER_AUTH_ERROR`) | `error` sin reintentar: hay que corregir la orden o el mapeo y reenviar. |
 | El backend no acepta un webhook | El evento va a `lis:events:order:dead` con el motivo y se confirma; no traba la cola. |
 | El orchestrator se cae a mitad de un evento | Al reiniciar retoma lo que dejó sin confirmar; lo de instancias muertas se reclama por autoclaim. |
 | Redis no está cuando se crea la orden | La orden se crea, el evento se pierde, queda el log de error del backend. Reenvío manual. |
@@ -132,7 +185,7 @@ tendría que deduplicar por `event_id`.
 | `attempt_number` | `1` (`n+1` en reenvíos) |
 | `retry_of_event_id` | vacío, o el `event_id` anterior |
 | `source` | `lis-backend` |
-| `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]`, `samples[]` |
+| `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]`, `samples[]`, `mappings` |
 
 El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 `events` en `config/database.php`), así el nombre es el mismo de los dos lados.
@@ -159,8 +212,11 @@ En producción todo sale del `.env` de `lis-infra`
   tipos de documento) coinciden. Si alguno no, se apaga con `LABCORE_SEND_*`
   en el adapter.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
-- **UI**: la línea de tiempo en la orden y el listado de integraciones con el
-  botón de reenvío consumen los endpoints de arriba; no están hechos.
+- **UI**: la línea de tiempo en la orden, el listado de integraciones con el
+  botón de reenvío y el workspace Admin > Integraciones (proveedor → entidad →
+  grilla con filtro "sin mapear", copiar códigos, import CSV) consumen los
+  endpoints de arriba; no están hechos. Un `error` con *"Faltan
+  equivalencias"* debería linkear a la grilla filtrada.
 - **Alertas**: cuando haya un sistema de alertas, `error` debería generar una.
 - **Sumar proveedores** (PACS, HIS, AMS): un bloque de config en el
   orchestrator y un adapter con el mismo contrato HTTP.
