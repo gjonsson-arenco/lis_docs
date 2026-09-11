@@ -24,6 +24,10 @@ Documentación del frontend monorepo con Next.js y Mantine UI.
 - **docs/settings-catalogs-api.md** - Integración de configuración
 - **docs/user-administration-api.md** - Integración de usuarios
 
+### 🔀 [Integraciones](./integrations/)
+Integraciones event-driven con proveedores externos (orchestrator + adapters).
+- **event-driven-integrations.md** - Flujo orden → Redis Streams → lis-orchestrator → adapter (Labcore), trazabilidad y reintentos
+
 ### 🔌 [Broker Gateway](./broker-gateway/)
 Documentación del gateway broker NestJS con adaptador Swiss Medical.
 - **README.md** - Descripción general del broker gateway

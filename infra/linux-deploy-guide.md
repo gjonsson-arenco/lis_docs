@@ -21,6 +21,8 @@ Repo de infra de referencia: `lis-infra` (rama `main` = template genérico, una 
 | `clinical-matcher` | FastAPI/Python | 8001 | `/health` |
 | `rules-engine` | Fastify/TypeScript | 3010 | `/health` |
 | `chat-service` | NestJS + Socket.io | 3002 | `/health` |
+| `orchestrator` | NestJS | 3020 | `/health` (no lo expone nginx) |
+| `adapter-labcore` | NestJS | 3021 | `/health` (no lo expone nginx) |
 | `mysql` | MySQL 8.0 | 3306 | — |
 | `redis` | Redis 7.4 | 6379 | — |
 
