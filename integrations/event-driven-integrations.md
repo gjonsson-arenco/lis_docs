@@ -9,7 +9,7 @@ implementado; los detalles de cada pieza están en el README de su repo.
 | Backend | `lis-backend` | Crea la orden, **emite** `order.created`, **guarda la trazabilidad** que le reportan, la expone a la UI. |
 | Orchestrator | `lis-orchestrator` | Lee los eventos, aplica las reglas, llama al adapter con reintentos, reporta cada paso al backend. |
 | Adapter | `lis-adapters/lis-adapter-labcore` | Traduce la orden canónica al formato del proveedor y llama a su API. Stateless. |
-| Labcore | externo | Recibe la orden. La API real está **pendiente**; el adapter corre en modo `stub`. |
+| Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. |
 
 ## Flujo
 
@@ -130,7 +130,7 @@ deduplica por `event_id`.
 | `attempt_number` | `1` (`n+1` en reenvíos) |
 | `retry_of_event_id` | vacío, o el `event_id` anterior |
 | `source` | `lis-backend` |
-| `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]` |
+| `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]`, `samples[]` |
 
 El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 `events` en `config/database.php`), así el nombre es el mismo de los dos lados.
@@ -150,9 +150,12 @@ En producción todo sale del `.env` de `lis-infra`
 
 ## Pendiente
 
-- **La API de Labcore.** Ruta, autenticación, formato de la orden y del
-  recibo. Hasta entonces `LABCORE_MODE=stub`. Lo que cambia cuando llegue está
-  en el README del adapter.
+- **Probar contra una Labcore API real.** El cliente está hecho contra el
+  contrato (`CreateOrderRequest`) y probado contra una API de juguete; falta
+  correrlo contra una instancia con base Labcore y confirmar que los códigos
+  de catálogo (estudios, tipos de muestra, centros, servicios, coberturas,
+  tipos de documento) coinciden. Si alguno no, se apaga con `LABCORE_SEND_*`
+  en el adapter.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
 - **UI**: la línea de tiempo en la orden y el listado de integraciones con el
   botón de reenvío consumen los endpoints de arriba; no están hechos.
