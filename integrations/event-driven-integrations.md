@@ -27,13 +27,13 @@ implementado; los detalles de cada pieza están en el README de su repo.
      │                         │◄─POST …/events/sent────────────────────────────┤                            │                    │
      │                         │                        │                        ├─POST /api/v1/orders───────►│                    │
      │                         │                        │                        │                            ├─(traduce, llama)──►│
-     │                         │                        │                        │                            │◄── LC-…  ──────────┤
+     │                         │                        │                        │                            │◄── orderId ────────┤
      │                         │                        │                        │◄─ 200 {external_id} ───────┤                    │
      │                         │◄─POST …/events/ack─────────────────────────────┤                            │                    │
      │                         │                        │◄──XACK─────────────────┤                            │                    │
      │  GET /orders/77/integrations                     │                        │                            │                    │
      ├────────────────────────►│                        │                        │                            │                    │
-     │◄─ [{status: received, external_id: LC-…, sent_at, received_at, payload_to_send, payload_received}]      │                    │
+     │◄─ [{status: received, external_id: orderId, sent_at, received_at, payload_to_send, payload_received}]      │                    │
 ```
 
 El usuario no espera a nada de esto: el `201` vuelve apenas commitea la
@@ -92,8 +92,10 @@ a la vista.
 | Redis no está cuando se crea la orden | La orden se crea, el evento se pierde, queda el log de error del backend. Reenvío manual. |
 
 Un evento reprocesado tras una caída puede llegar dos veces al proveedor. El
-`pending` es idempotente; la llamada a Labcore no. Si hace falta, el adapter
-deduplica por `event_id`.
+`pending` del backend es idempotente por `event_id` y el alta en la Labcore
+API lo es por número de orden (la segunda vez responde `200` y actualiza), así
+que no se duplican órdenes. Un adapter de otro proveedor sin esa garantía
+tendría que deduplicar por `event_id`.
 
 ## Endpoints
 
