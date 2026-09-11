@@ -156,6 +156,8 @@ tendría que deduplicar por `event_id`.
 
 | Método y ruta | Auth | Para qué |
 | --- | --- | --- |
+| `GET /api/v1/integrations/status` | `integrations.view` | Estado consolidado para el tablero: orchestrator (`/api/v1/status`: consumer, contadores, health de adapters), stream en Redis (largo, lag, pendientes, cola muerta) y envíos de las últimas 24 h. |
+| `GET /api/v1/integrations/logs/{log}` | `integrations.view` | Una fila con sus payloads. |
 | `POST /api/v1/internal/integrations/events/pending` | `X-Internal-Token` (`lis_orchestrator`) | Crea/actualiza la fila en `pending_send`. |
 | `POST /api/v1/internal/integrations/events/sent` | ídem | Marca `sent`. |
 | `POST /api/v1/internal/integrations/events/ack` | ídem | Marca `received`. |
@@ -212,11 +214,12 @@ En producción todo sale del `.env` de `lis-infra`
   tipos de documento) coinciden. Si alguno no, se apaga con `LABCORE_SEND_*`
   en el adapter.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
-- **UI**: la línea de tiempo en la orden, el listado de integraciones con el
-  botón de reenvío y el workspace Admin > Integraciones (proveedor → entidad →
-  grilla con filtro "sin mapear", copiar códigos, import CSV) consumen los
-  endpoints de arriba; no están hechos. Un `error` con *"Faltan
-  equivalencias"* debería linkear a la grilla filtrada.
+- **UI, hecho**: *Instrumentos y conexiones → Integraciones* (tarjetas de
+  orquestador, cola, adapters y envíos 24 h + tabla de eventos con detalle y
+  reenvío), pestaña *Integraciones* en la ficha de la orden, y
+  *Administración → Integraciones* (proveedores, políticas, valores fijos y
+  grilla de equivalencias con import/export CSV). Falta que un `error` con
+  *"Faltan equivalencias"* linkee a la grilla filtrada.
 - **Alertas**: cuando haya un sistema de alertas, `error` debería generar una.
 - **Sumar proveedores** (PACS, HIS, AMS): un bloque de config en el
   orchestrator y un adapter con el mismo contrato HTTP.
