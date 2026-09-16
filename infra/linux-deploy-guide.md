@@ -174,6 +174,9 @@ Qué hace, en orden:
 5. `restart` de `nginx`/`backend-proxy` (releen config montada y re-resuelven el
    DNS de los upstreams recreados).
 6. Reload del catálogo de reglas del `rules-engine` (§7.6).
+7. Tag `cebac/<fecha>-<hhmm>` en **todos** los repos del stack
+   (`tag-release.sh`), sólo si desplegó algo. Es la foto de qué quedó en
+   producción; de ahí sale el delta del próximo release (§5.3).
 
 **Al sumar un servicio nuevo al stack hay que tocar tres lugares**: el
 `docker-compose.prod.yml`, el mapa `REPO_SERVICE` de `redeploy.sh` (repo → nombre
@@ -194,6 +197,9 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `create-chat-db.sh` | server | Crea la base y el usuario del chat en MySQL (idempotente; lo llama `redeploy.sh`) |
 | `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
 | `copy-requirements.sh` | **tu máquina** | Sube los PDF de indicaciones al volumen del backend |
+| `tag-release.sh` | server | Taggea el HEAD de todos los repos con un mismo nombre (lo llama `redeploy.sh`; a mano para bootstrap) (§5.3) |
+| `release-notes.sh` | server, **vía ssh desde tu máquina** | Imprime el borrador Markdown del release entre dos tags (§5.3) |
+| `push-geo-env.sh` | **tu máquina** | Sube las keys de Amazon Location a los `.env.prod` del backend y el front |
 
 Tres cosas que valen para varios de ellos:
 
@@ -208,6 +214,50 @@ Tres cosas que valen para varios de ellos:
   indicaciones viven bajo `storage/`, que está gitignoreado, así que ni el
   clone ni el build los traen. Van a `/opt/lis/storage/requirements` en el
   host, que el compose bind-montea en el contenedor — ver §9.1.
+
+### 5.3 Releases: qué hay desplegado y qué se le informa al cliente
+
+El "desde" de cada deploy no vive en la memoria de nadie: `redeploy.sh` cierra
+cada deploy exitoso taggeando **todos** los repos del stack (también los que no
+cambiaron) con el mismo nombre, `cebac/<fecha>-<hhmm>`. Así:
+
+- qué está en producción = `git describe --tags` en cualquier repo del server;
+- qué entró entre dos deploys = `git log tagA..tagB` en cada repo.
+
+Los tags se crean en el server y se intentan pushear; si la deploy key es de
+sólo lectura quedan locales al server, y por eso `release-notes.sh` se corre
+**allá** por ssh, no contra los clones locales:
+
+```bash
+# desde tu máquina, parado en lis-infra (rama deploy/cebac)
+ssh usuario@server 'bash -s' < scripts/release-notes.sh > releases/cebac/2026-09-16-1835.md
+```
+
+Imprime un borrador con: tabla de hashes anterior → desplegado por repo,
+"Novedades para el cliente" (los `feat`/`fix` agrupados por categoría funcional
+según el scope del commit), "Notas de deploy" (migrations, seeders y variables
+de `.env.example` nuevas, sacadas del diff) y "Cambios internos" (todo lo demás,
+más lo de infra). Se edita — la sección de novedades se reescribe en lenguaje de
+cliente y se borra lo que no le importe — y se commitea en
+`lis-infra/releases/<cliente>/<tag sin prefijo>.md`, en la rama del cliente. Ese
+archivo es el registro de qué se le informó en cada deploy.
+
+La convención que lo sostiene: `feat` = se le cuenta al cliente; `fix` = se le
+cuenta si lo puede notar; `refactor`/`style`/`build`/`chore` = interno. Los
+scopes tienen que ser los mismos entre front y back (`admission`,
+`medical-orders`, `valuation`…) para que las dos mitades de una feature caigan
+en la misma categoría; un scope desconocido sale como categoría propia, así no
+se pierde — si se repite, se agrega al mapa `category()` del script.
+
+**Bootstrap en un server que nunca se taggeó**: antes del primer `redeploy.sh`
+con esta versión, marcar lo que está desplegado hoy para tener el "desde":
+
+```bash
+/opt/lis/lis-infra/scripts/tag-release.sh cebac/2026-09-10   # fecha del último deploy
+```
+
+Un repo que se suma al stack después no tiene el tag anterior: el borrador lo
+marca con "—" y lista sólo su último commit en vez de todo el historial.
 
 ---
 
