@@ -178,6 +178,15 @@ Qué hace, en orden:
    (`tag-release.sh`), sólo si desplegó algo. Es la foto de qué quedó en
    producción; de ahí sale el delta del próximo release (§5.3).
 
+Si `compose up` falla (un servicio nuevo que no levanta, o unhealthy y frena a
+los que dependen de él) el script **no aborta**: sigue con migrations y con el
+restart de nginx —Compose ya recreó frontend/backend con IP nueva, y cortar ahí
+dejaba todo en 502— y termina con error y sin taggear. Se arregla la causa y se
+vuelve a correr con `--force`, que aplica compose, migrations y tag aunque
+ningún repo haya traído commits nuevos (sin el flag, la segunda corrida no
+haría nada porque ya está todo pulleado). `--force` sirve también para aplicar
+un cambio de `.env` sin código nuevo.
+
 **Al sumar un servicio nuevo al stack hay que tocar tres lugares**: el
 `docker-compose.prod.yml`, el mapa `REPO_SERVICE` de `redeploy.sh` (repo → nombre
 del servicio) y el mapa de `clone-repos.sh` (carpeta → repo → rama). Si falta el
