@@ -57,20 +57,26 @@ orden. Con el stub, la trazabilidad queda en `received` unos segundos después
 - **El adapter no habla con el backend.** El único que reporta es el
   orchestrator: reintentos, backoff y credenciales del backend en un solo
   lugar. El adapter recibe una orden y contesta un id o un error tipado.
-- **La regla "esta orden va a Labcore" vive en el orchestrator**, por
-  configuración (`LABCORE_ENABLED`, y filtros opcionales
-  `LABCORE_ORIGIN_CODES` / `LABCORE_SERVICE_CODES`). No hay columna
-  `orders.destination`: si algún día el destino lo elige el usuario en el
-  formulario, se agrega la columna y la regla pasa a leerla del payload.
+- **La regla "esta orden va a Labcore" se administra en el LIS**
+  (`integration_rules`, en *Sistema → Integraciones → Orquestador*: evento
+  → proveedor, filtros por origen y servicio, activa). El orchestrator la
+  aplica: la lee de `GET /internal/integrations/config` y la relee cada
+  `orchestrator.config_refresh_seconds`; el `.env` sólo dice dónde está cada
+  adapter. Los valores de despacho (intentos, backoff) viajan en la misma
+  respuesta desde `application_settings` (`orchestrator.*`). Qué eventos
+  existen y qué llevan sigue siendo código (`IntegrationEvents`): es el
+  contrato con los adapters. No hay columna `orders.destination`: si algún
+  día el destino lo elige el usuario en el formulario, se agrega la columna
+  y la regla pasa a leerla del payload.
 - **`orders.status` no se toca.** El estado de integración vive en
   `integration_logs`; el estado de la orden es del laboratorio.
 - **El sujeto es polimórfico.** `integration_logs.subject_type/subject_id`
   (hoy `order`); el día que se informen resultados entran por la misma tabla
   con otro `event_name`, sin tocar el orchestrator.
-- **El LIS registra antes de publicar.** Una fila por proveedor activo al
-  emitir, así lo que no llegó al stream o quedó retenido se ve y se reemite.
-  El orchestrator confirma (`pending`) y avisa a quién ruteó (`routed`).
-  La regla de ruteo sigue en el orchestrator.
+- **El LIS registra antes de publicar.** Una fila por proveedor con una
+  regla activa para el evento, así lo que no llegó al stream o quedó
+  retenido se ve y se reemite. El orchestrator confirma (`pending`) y avisa
+  a quién ruteó de verdad (`routed`).
 - **El evento lleva la orden completa.** El orchestrator no vuelve a
   preguntar por ella, y lo que se audita como `payload_to_send` es exactamente
   lo que salió del backend. El contrato es `OrderIntegrationPayloadBuilder`
@@ -284,7 +290,8 @@ tendría que deduplicar por `event_id`.
 | --- | --- | --- |
 | `GET /api/v1/integrations/status` | `integrations.view` | Estado consolidado para el tablero: orchestrator (`/api/v1/status`: consumer, contadores, health de adapters), stream en Redis (largo, lag, pendientes, cola muerta) y envíos de las últimas 24 h. |
 | `GET /api/v1/integrations/logs/{log}` | `integrations.view` | Una fila con sus payloads. |
-| `POST /api/v1/internal/integrations/events/routed` | `X-Internal-Token` (`lis_orchestrator`) | A qué proveedores se ruteó el evento; el resto queda `skipped`. |
+| `GET /api/v1/internal/integrations/config` | `X-Internal-Token` (`lis_orchestrator`) | Reglas vigentes, valores de despacho y `version`; el orchestrator lo relee cada `refresh_seconds`. |
+| `POST /api/v1/internal/integrations/events/routed` | ídem | A qué proveedores se ruteó el evento; el resto queda `skipped`. |
 | `POST /api/v1/internal/integrations/events/pending` | ídem | Confirma/crea la fila en `pending_send`. Responde `held: true` si el proveedor está en pausa. |
 | `POST /api/v1/internal/integrations/events/sent` | ídem | Marca `sent`. |
 | `POST /api/v1/internal/integrations/events/ack` | ídem | Marca `received`. Si trae `references.patient_external_id`, enlaza al paciente (`order_ack`). |
@@ -295,6 +302,9 @@ tendría que deduplicar por `event_id`.
 | `GET /api/v1/integrations/logs` | `integrations.view` | Listado global, filtros `status`, `provider`, `subject_type`, `subject_id`, `external_id`, `from`, `to`. Sin payloads. |
 | `POST /api/v1/integrations/orchestrator/consumer/pause` / `resume` | `integrations.manage` | Frena / reanuda la lectura del orchestrator. |
 | `POST /api/v1/integrations/providers/{code}/pause` / `resume` | `integrations.manage` | Frena / reanuda los envíos a un proveedor; `resume` devuelve `released` y `still_held`. |
+| `GET /api/v1/admin/integrations/orchestrator` | `integrations.manage` | El orquestador para el ABM: estado, valores de despacho, `config_version`, reglas, y en `meta` el catálogo de eventos, los proveedores y los códigos de origen/servicio para filtrar. |
+| `PATCH /api/v1/admin/integrations/orchestrator/settings` | ídem | `dispatch_max_attempts`, `dispatch_backoff_base_ms`, `dispatch_backoff_max_ms`, `config_refresh_seconds`. |
+| `POST` / `PATCH` / `DELETE /api/v1/admin/integrations/rules[/{rule}]` | ídem | Las reglas. `event_type` sale del evento; `name` en minúsculas y guiones. |
 
 ### lis-orchestrator
 
@@ -331,6 +341,7 @@ El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 | lis-backend | lis-orchestrator | lis-adapter-labcore |
 | --- | --- | --- |
 | `DOMAIN_EVENTS_ORDER_STREAM` | `DOMAIN_EVENTS_ORDER_STREAM` | — |
+| reglas y `orchestrator.*` (ABM) | `CONFIG_REFRESH_MS` sólo hasta la primera lectura | — |
 | `LIS_ORCHESTRATOR_INTERNAL_TOKEN` | `BACKEND_INTERNAL_TOKEN` | — |
 | `LIS_ADAPTER_LABCORE_INTERNAL_TOKEN` | `LABCORE_ADAPTER_INTERNAL_TOKEN` | `INTERNAL_TOKEN` |
 | `LIS_ADAPTER_LABCORE_BASE_URL`, `LIS_ADAPTER_LABCORE_PATIENT_LOOKUP`, `LIS_ADAPTER_LABCORE_TIMEOUT_SECONDS` | `LABCORE_ADAPTER_URL` | `PORT` (3021) |
