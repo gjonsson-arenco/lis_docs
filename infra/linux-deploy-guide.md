@@ -23,6 +23,7 @@ Repo de infra de referencia: `lis-infra` (rama `main` = template genérico, una 
 | `chat-service` | NestJS + Socket.io | 3002 | `/health` |
 | `orchestrator` | NestJS | 3020 | `/health` (no lo expone nginx) |
 | `adapter-labcore` | NestJS | 3021 | `/health` (no lo expone nginx) |
+| `labcore-api` | .NET 10 / Minimal APIs | 5080 | `/health/live` (no lo expone nginx; `/health/ready` además pega al SQL Server) |
 | `mysql` | MySQL 8.0 | 3306 | — |
 | `redis` | Redis 7.4 | 6379 | — |
 
@@ -45,6 +46,32 @@ Dos particularidades del `chat-service`, que es el único que se sale del molde:
   chat roto dejaría caído el sitio entero; su `server` block resuelve el
   upstream por DNS en cada request (`proxy_pass` con variable + `resolver`), así
   que si el chat no está solo se cae su puerto.
+
+La `labcore-api` también se sale del molde, por otro motivo: **no es un
+servicio del LIS**. Es la API REST (nuestra, .NET) sobre la base de Labcore, el
+LIS viejo del cliente, y es lo que consume `adapter-labcore` para crear órdenes
+y buscar pacientes. Se buildea y corre en este stack para tener el circuito
+completo en un solo `compose up`, pero:
+
+- **Su base no está en Docker.** Es el SQL Server que Labcore ya usa, en la red
+  del cliente; la cadena de conexión va en el `.env` de `lis-infra`
+  (`LABCORE_LIS_CONNECTION_STRING`) con la IP del host, nunca `localhost`. Sin
+  esa base la API arranca igual (el healthcheck del contenedor es
+  `/health/live`, que no la toca), `/health/ready` devuelve 503 y cada orden
+  queda en `failed` en el monitor de integraciones.
+- **La configuración de la instalación está versionada en `lis-infra`**, no en
+  el repo de la API: `labcore-api/appsettings.Production.json` (efector,
+  terminal, estados — las tablas `Lis:Defaults` del README de la API) y
+  `labcore-api/sql-overrides/` (queries ajustadas al esquema del cliente). El
+  compose los monta sobre `/app` en modo lectura. Los secretos entran por
+  `environment` con la sintaxis `Seccion__Clave` de .NET.
+- **Una sola clave para los dos lados.** `LABCORE_API_KEY` del `.env` es a la
+  vez la clave que la API declara como propia (`Api__ApiKeys__0__Key`, con
+  escritura) y la que el adapter manda en `X-Api-Key` — el mismo principio de
+  §6.4.
+- **El repo se llama distinto que la carpeta** (`api-lis-labcore` →
+  `/opt/lis/labcore-api`); `clone-repos.sh` ya lo sabe. La deploy key del server
+  tiene que tener acceso a ese repo también.
 
 ---
 
