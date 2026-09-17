@@ -1,15 +1,25 @@
-# Integraciones event-driven: orchestrator y adapters
+# Integraciones con proveedores: orchestrator y adapters
 
-Cómo una orden creada en el LIS llega a un proveedor externo (hoy Labcore) y
-cómo el usuario ve en qué quedó. Este documento es el modelo tal como quedó
+Cómo una orden creada en el LIS llega a un proveedor externo (hoy Labcore),
+cómo el usuario ve en qué quedó, y cómo la admisión busca pacientes en
+Labcore antes de darlos de alta. Este documento es el modelo tal como quedó
 implementado; los detalles de cada pieza están en el README de su repo.
 
 | Pieza | Repo | Rol |
 | --- | --- | --- |
-| Backend | `lis-backend` | Crea la orden, **emite** `order.created`, **guarda la trazabilidad** que le reportan, la expone a la UI. |
-| Orchestrator | `lis-orchestrator` | Lee los eventos, aplica las reglas, llama al adapter con reintentos, reporta cada paso al backend. |
-| Adapter | `lis-adapters/lis-adapter-labcore` | Traduce la orden canónica al formato del proveedor y llama a su API. Stateless. |
-| Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. |
+| Backend | `lis-backend` | Crea la orden, **emite** `order.created`, **guarda la trazabilidad** que le reportan, la expone a la UI. Para la búsqueda de pacientes le pega **directo al adapter**. |
+| Orchestrator | `lis-orchestrator` | Lee los eventos, aplica las reglas, llama al adapter con reintentos, reporta cada paso al backend. Sólo para el flujo de eventos. |
+| Adapter | `lis-adapters/lis-adapter-labcore` | Traduce la orden canónica al formato del proveedor y llama a su API; traduce los pacientes del proveedor al canónico del LIS. Stateless. Es el **único** que conoce la URL, la clave y el contrato de Labcore. |
+| Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. `GET /api/v1/patients`: búsqueda por prefijo en `Historias`. |
+
+Hay dos formas de hablar con un proveedor, y no se mezclan:
+
+- **Event-driven** (órdenes): backend → Redis → orchestrator → adapter →
+  proveedor. Asincrónico, con reintentos y trazabilidad. Es el grueso de este
+  documento.
+- **Sincrónico** (búsqueda de pacientes): backend → adapter → proveedor, con
+  un usuario esperando. Sin Redis ni orchestrator: no hay evento, no hay nada
+  que reintentar ni auditar. Ver [Búsqueda de pacientes](#búsqueda-de-pacientes-en-el-proveedor-sincrónico).
 
 ## Flujo
 
@@ -114,6 +124,92 @@ Administración (`integrations.manage`), bajo `/api/v1/admin/integrations`:
 `IntegrationProvidersSeeder` deja a Labcore con `passthrough` en todo y
 `omit` en médico.
 
+## Búsqueda de pacientes en el proveedor (sincrónico)
+
+**Labcore es el maestro de pacientes.** El LIS los va dando de alta a medida
+que llegan. Sin esto, el alta de orden mandaba `patient.externalId = id LIS`,
+Labcore no encontraba ninguna Historia con ese `h_external_id` y **creaba una
+nueva** para cada paciente histórico: un duplicado por paciente. La búsqueda
+y la referencia externa cierran ese circuito.
+
+```
+  Admisión                 lis-backend                          lis-adapter-labcore        Labcore API
+     │ GET /patients/lookup?search=per │                               │                       │
+     ├────────────────────────────────►│ SELECT patients (LIKE %per%)   │                       │
+     │                                 ├─GET /api/v1/patients?last_name=per───────────────────►│                       │
+     │                                 │                               ├─GET /api/v1/patients─►│ Historias LIKE 'per%'
+     │                                 │                               │◄─ items (h_id, doc…) ─┤
+     │                                 │◄─ {items: [ExternalPatient]}  (códigos de Labcore) ───┤
+     │                                 │ códigos → ids LIS (mapeos inversos)                    │
+     │                                 │ descarta los que ya están en el LIS (referencia o documento)
+     │◄─ {local, external}, meta.external_unavailable ┤                                        │
+     │                                                                                          │
+     │ elige uno externo → alta del LIS prellenada (+ ID fotográfico, etc.)                     │
+     │ POST /patients {…, external_references: [{provider: labcore, external_id: h_id}]}        │
+     ├────────────────────────────────►│ INSERT patients + patient_external_references           │
+```
+
+- **`GET /api/v1/patients/lookup?search=&limit=`** (mismo auth que
+  `/patients`). Devuelve `data.local` (pacientes del LIS, misma forma que
+  `GET /patients`) y `data.external` (candidatos del proveedor, ya
+  traducidos). `meta.external_unavailable` avisa que el adapter o Labcore no
+  contestaron: la búsqueda local **nunca** depende de la externa (timeout de
+  2 s, `LIS_ADAPTER_LABCORE_TIMEOUT_SECONDS`). `meta.external_truncated`
+  avisa que Labcore devolvió el máximo pedido.
+- **Criterios**: sólo dígitos → documento; texto → `Apellido[,] [Nombre]`.
+  Menos de 3 caracteres no viaja. En Labcore todo es **prefijo**
+  (`Historias` es toda la historia del laboratorio; un `%x%` la recorre
+  entera); en el LIS sigue siendo "contiene".
+- **Deduplicación**: un candidato cuyo `h_id` ya está en
+  `patient_external_references`, o cuyo documento (tipo traducido + número)
+  ya existe en `identifications`, no se ofrece como externo: si la búsqueda
+  local no lo trajo, se agrega a `local` igual.
+- **Traducción inversa de códigos**: el adapter devuelve los códigos de
+  Labcore tal cual (`document.type_code`, `coverage.code`); el backend los
+  resuelve con `integration_code_mappings` (`external_code → lis_id`) y, si no
+  hay equivalencia, por `passthrough` sobre el código del LIS
+  (`IntegrationCodeReverseResolver`). Lo que no se pudo traducir viaja como
+  `null` y el formulario lo pide.
+- Cada externo trae `prefill`: el cuerpo listo para `POST /patients`
+  (`identifications`, `insurances`, `external_references`).
+- **Flag**: `LIS_ADAPTER_LABCORE_PATIENT_LOOKUP` en el backend. Apagado, el
+  lookup devuelve sólo lo local y `meta.external_providers = []`.
+- **UI**: en *Admisión por pasos*, *Admisión rápida* y el alta de *Órdenes
+  médicas*, el modal de coincidencias muestra los del LIS como siempre y,
+  debajo, "En Labcore, sin alta en el LIS" con el botón *Dar de alta desde
+  Labcore*, que abre el alta prellenada. El ABM de *Pacientes* busca sólo en
+  el LIS, a propósito: ahí se administra lo que ya está dado de alta.
+
+### `patient_external_references`
+
+```
+patient_id → patients, provider_id → integration_providers,
+external_id (h_id), external_number (historia clínica, para mostrar),
+source ('lookup' | 'order_ack'), linked_at
+unique (patient_id, provider_id), unique (provider_id, external_id)
+```
+
+Cómo nace una referencia:
+
+| Origen | Cuándo |
+| --- | --- |
+| `lookup` | Admisión eligió al paciente de la búsqueda en Labcore y lo dio de alta con `external_references` en el `POST /patients`. El request rechaza (`422`) un `external_id` que ya sea de otro paciente. |
+| `order_ack` | El paciente nació en el LIS; en la primera orden Labcore creó su Historia y devolvió `patientId`. El adapter lo normaliza como `references.patient_external_id`, el orchestrator lo reenvía en el `ack` y el backend lo guarda si el paciente no tenía referencia. |
+
+Nunca se pisa: si el paciente ya tiene otra referencia en ese proveedor, o el
+id externo es de otro paciente, se loguea un warning y no se toca.
+
+### Cómo viaja en el alta de orden
+
+El payload canónico lleva `patient.external_references = {labcore: {external_id, external_number}}`.
+El adapter lo manda como `patient.id` (`h_id`) en el `CreateOrderRequest`.
+Labcore resuelve al paciente en este orden: por `patient.id` (y si esa
+Historia no tenía `h_external_id`, la enlaza con `patient.externalId` en el
+mismo alta); si no viene, por `h_external_id`; y si tampoco, crea. Un
+`patient.id` inexistente rechaza la orden con `400` antes de escribir nada.
+
+`GET /patients/{id}` y `POST /patients` devuelven `external_references`.
+
 ## Estados de `order_integration_logs`
 
 ```
@@ -160,8 +256,9 @@ tendría que deduplicar por `event_id`.
 | `GET /api/v1/integrations/logs/{log}` | `integrations.view` | Una fila con sus payloads. |
 | `POST /api/v1/internal/integrations/events/pending` | `X-Internal-Token` (`lis_orchestrator`) | Crea/actualiza la fila en `pending_send`. |
 | `POST /api/v1/internal/integrations/events/sent` | ídem | Marca `sent`. |
-| `POST /api/v1/internal/integrations/events/ack` | ídem | Marca `received`. |
+| `POST /api/v1/internal/integrations/events/ack` | ídem | Marca `received`. Si trae `references.patient_external_id`, enlaza al paciente (`order_ack`). |
 | `POST /api/v1/internal/integrations/events/error` | ídem | Marca `error`. |
+| `GET /api/v1/patients/lookup` | usuario | La búsqueda de admisión: `local` + `external` (Labcore) + `meta.external_unavailable`. |
 | `GET /api/v1/orders/{order}/integrations` | usuario | La trazabilidad de una orden, con payloads. |
 | `POST /api/v1/orders/{order}/integrations/{provider}/retry` | `integrations.manage` | Reenvía. Responde `202` con el `event_id` nuevo; `503` si el bus no está. |
 | `GET /api/v1/integrations/logs` | `integrations.view` | Listado global, filtros `status`, `provider`, `order_id`, `external_id`, `from`, `to`. Sin payloads. |
@@ -172,7 +269,8 @@ tendría que deduplicar por `event_id`.
 
 ### lis-adapter-labcore
 
-`GET /health`, `GET /ready`, `POST /api/v1/orders` (`X-Internal-Token`).
+`GET /health`, `GET /ready`, `POST /api/v1/orders`, `GET /api/v1/patients`,
+`GET /api/v1/patients/{external_id}` (todos con `X-Internal-Token`).
 
 ## Evento en el stream
 
@@ -198,8 +296,8 @@ El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 | --- | --- | --- |
 | `DOMAIN_EVENTS_ORDER_STREAM` | `DOMAIN_EVENTS_ORDER_STREAM` | — |
 | `LIS_ORCHESTRATOR_INTERNAL_TOKEN` | `BACKEND_INTERNAL_TOKEN` | — |
-| — | `LABCORE_ADAPTER_INTERNAL_TOKEN` | `INTERNAL_TOKEN` |
-| — | `LABCORE_ADAPTER_URL` | `PORT` (3021) |
+| `LIS_ADAPTER_LABCORE_INTERNAL_TOKEN` | `LABCORE_ADAPTER_INTERNAL_TOKEN` | `INTERNAL_TOKEN` |
+| `LIS_ADAPTER_LABCORE_BASE_URL`, `LIS_ADAPTER_LABCORE_PATIENT_LOOKUP`, `LIS_ADAPTER_LABCORE_TIMEOUT_SECONDS` | `LABCORE_ADAPTER_URL` | `PORT` (3021) |
 | — | — | `LABCORE_MODE` (`stub` \| `http`), `LABCORE_API_URL`, `LABCORE_API_KEY` |
 
 En producción todo sale del `.env` de `lis-infra`
@@ -217,6 +315,17 @@ En producción todo sale del `.env` de `lis-infra`
   con las equivalencias y políticas por entidad (arriba), sin tocar el
   adapter. El adapter arranca en `LABCORE_MODE=stub`; contra la API real va
   `LABCORE_MODE=http` con `LABCORE_API_URL` y `LABCORE_API_KEY`.
+- **El alta de orden contra la base real de Labcore.** La búsqueda ya corre
+  contra la base real (SQL Server 2008 R2, 644 k historias, ~200 ms). El alta
+  de orden todavía no: `Historias` **no tiene `h_external_id`** (la API lo
+  asumía en `InsertPatient` y `GetPatientByExternalId`) y `h_ti_id` está
+  vacío (el tipo de documento es `h_tipo_identificacion`, el `ti_id` como
+  texto). Decisión tomada: el enlace vive sólo del lado del LIS
+  (`patient_external_references`); Labcore no guarda nuestro id. Falta
+  adaptar `ResolvePatientAsync`/`InsertPatient` a eso.
+- **Documentos placeholder.** Labcore no exige documento: tipo `NN` y número
+  `_159145`. El adapter los manda como `document: null`; el LIS no deduplica
+  ni prellena con ellos. `h_numero` real viene sin puntos.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
 - **UI, hecho**: *Instrumentos y conexiones → Integraciones* (tarjetas de
   orquestador, cola, adapters y envíos 24 h + tabla de eventos con detalle y

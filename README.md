@@ -26,7 +26,7 @@ Documentación del frontend monorepo con Next.js y Mantine UI.
 
 ### 🔀 [Integraciones](./integrations/)
 Integraciones event-driven con proveedores externos (orchestrator + adapters).
-- **event-driven-integrations.md** - Flujo orden → Redis Streams → lis-orchestrator → adapter (Labcore), trazabilidad y reintentos
+- **event-driven-integrations.md** - Flujo orden → Redis Streams → lis-orchestrator → adapter (Labcore), trazabilidad y reintentos; búsqueda sincrónica de pacientes en Labcore y la referencia externa del paciente
 
 ### 🔌 [Broker Gateway](./broker-gateway/)
 Documentación del gateway broker NestJS con adaptador Swiss Medical.

@@ -80,6 +80,12 @@ Middleware de estas rutas:
 - `insurances[].valid_through`: opcional, `date`.
 - `insurances[].is_primary`: opcional, `boolean`.
 - `insurances[].is_active`: opcional, `boolean`.
+- `external_references[]`: opcional. Quien es el paciente en un proveedor externo (se manda cuando el alta nace de la busqueda en Labcore, ver 2b).
+- `external_references[].provider`: requerido si existe item, `exists:integration_providers,code` (`labcore`).
+- `external_references[].external_id`: requerido si existe item, `string`, max 100. Rechaza (`422`) si ya pertenece a otro paciente.
+- `external_references[].external_number`: opcional, `string`, max 100.
+
+La respuesta incluye `external_references[]` con `provider`, `provider_name`, `external_id`, `external_number`, `source` (`lookup` | `order_ack`) y `linked_at`.
 
 ### Response (201)
 
@@ -195,6 +201,70 @@ Formas validas para `include`:
   }
 }
 ```
+
+## 2b) Busqueda de admision: LIS + Labcore
+
+- Metodo: `GET`
+- Endpoint: `/api/v1/patients/lookup`
+- Para que: la busqueda de la pantalla de admision. Trae los pacientes del LIS y, aparte, los que el proveedor maestro (Labcore) conoce y el LIS todavia no tiene dados de alta. Elegir uno externo abre el alta del LIS prellenada.
+
+### Query params
+
+- `search`: requerido, `string`, 2..120. Solo digitos → documento (prefijo en Labcore); texto → `Apellido[,] [Nombre]`.
+- `limit`: opcional, 1..50, default 10.
+
+### Response (200)
+
+```json
+{
+  "data": {
+    "local": [ { "...misma forma que GET /api/v1/patients con identifications e insurances..." } ],
+    "external": [
+      {
+        "provider": "labcore",
+        "provider_name": "Labcore",
+        "external_id": "7002",
+        "external_number": "HC-7002",
+        "last_name": "Perez",
+        "first_name": "Ana Maria",
+        "birth_date": "1979-02-03",
+        "gender": "female",
+        "email": null,
+        "phone": "1144440002",
+        "mobile": null,
+        "document": { "type_code": "DNI", "type_id": 1, "type_name": "Documento Nacional de Identidad", "number": "27123456" },
+        "coverage": { "code": "363", "insurance_type_id": 1, "insurance_type_name": "ASOC. PROTECCION FAMILIAR", "member_number": "0001234567" },
+        "prefill": {
+          "last_name": "Perez",
+          "first_name": "Ana Maria",
+          "birth_date": "1979-02-03",
+          "gender": "female",
+          "email": null,
+          "phone": "1144440002",
+          "mobile": null,
+          "identifications": [ { "identification_type_id": 1, "number": "27123456", "is_primary": true } ],
+          "insurances": [ { "insurance_type_id": 1, "insurance_plan_id": null, "affiliate_number": "0001234567", "is_primary": true, "is_active": true } ],
+          "external_references": [ { "provider": "labcore", "external_id": "7002", "external_number": "HC-7002" } ]
+        }
+      }
+    ]
+  },
+  "meta": {
+    "external_providers": ["labcore"],
+    "external_unavailable": false,
+    "external_error": null,
+    "external_truncated": false
+  }
+}
+```
+
+- `external[]` ya viene traducido: `document.type_id` e `insurance_type_id` son ids del LIS (via equivalencias de integraciones o passthrough por codigo). Si no se pudo traducir, `null`: el formulario lo pide.
+- `prefill` es el cuerpo listo para `POST /api/v1/patients`.
+- Un paciente de Labcore que ya esta en el LIS (por referencia guardada o por documento) no aparece en `external`: va en `local`.
+- `meta.external_unavailable = true` significa que el adapter o Labcore no contestaron a tiempo (timeout 2 s): `local` sigue siendo valido. `external_truncated = true`: Labcore devolvio el maximo pedido, conviene afinar la busqueda.
+- Con `LIS_ADAPTER_LABCORE_PATIENT_LOOKUP=false` en el backend, `external` es siempre `[]` y `external_providers` `[]`.
+
+Ver `integrations/event-driven-integrations.md` para el modelo completo (por que Labcore es el maestro y como viaja la referencia en el alta de orden).
 
 ## 3) Modificar datos de un paciente
 
