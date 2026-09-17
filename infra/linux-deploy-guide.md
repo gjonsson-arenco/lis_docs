@@ -241,6 +241,7 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `tag-release.sh` | server | Taggea el HEAD de todos los repos con un mismo nombre (lo llama `redeploy.sh`; a mano para bootstrap) (§5.3) |
 | `release-notes.sh` | server, **vía ssh desde tu máquina** | Imprime el borrador Markdown del release entre dos tags (§5.3) |
 | `push-geo-env.sh` | **tu máquina** | Sube las keys de Amazon Location a los `.env.prod` del backend y el front |
+| `set-infra-env.sh` | **tu máquina** | Setea variables en el `.env` de `lis-infra` del server (cadena de conexión de Labcore, claves) sin pasarlas por la línea de comando |
 
 Tres cosas que valen para varios de ellos:
 
