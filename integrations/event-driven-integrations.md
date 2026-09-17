@@ -199,6 +199,8 @@ El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 | `DOMAIN_EVENTS_ORDER_STREAM` | `DOMAIN_EVENTS_ORDER_STREAM` | — |
 | `LIS_ORCHESTRATOR_INTERNAL_TOKEN` | `BACKEND_INTERNAL_TOKEN` | — |
 | — | `LABCORE_ADAPTER_INTERNAL_TOKEN` | `INTERNAL_TOKEN` |
+| — | `LABCORE_ADAPTER_URL` | `PORT` (3021) |
+| — | — | `LABCORE_MODE` (`stub` \| `http`), `LABCORE_API_URL`, `LABCORE_API_KEY` |
 
 En producción todo sale del `.env` de `lis-infra`
 (`LIS_ORCHESTRATOR_INTERNAL_TOKEN`, `LIS_ADAPTER_LABCORE_INTERNAL_TOKEN`,
@@ -211,8 +213,10 @@ En producción todo sale del `.env` de `lis-infra`
   contrato (`CreateOrderRequest`) y probado contra una API de juguete; falta
   correrlo contra una instancia con base Labcore y confirmar que los códigos
   de catálogo (estudios, tipos de muestra, centros, servicios, coberturas,
-  tipos de documento) coinciden. Si alguno no, se apaga con `LABCORE_SEND_*`
-  en el adapter.
+  tipos de documento) coinciden. Lo que no coincida se resuelve desde el LIS
+  con las equivalencias y políticas por entidad (arriba), sin tocar el
+  adapter. El adapter arranca en `LABCORE_MODE=stub`; contra la API real va
+  `LABCORE_MODE=http` con `LABCORE_API_URL` y `LABCORE_API_KEY`.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
 - **UI, hecho**: *Instrumentos y conexiones → Integraciones* (tarjetas de
   orquestador, cola, adapters y envíos 24 h + tabla de eventos con detalle y
