@@ -182,10 +182,15 @@ Si `compose up` falla (un servicio nuevo que no levanta, o unhealthy y frena a
 los que dependen de él) el script **no aborta**: sigue con migrations y con el
 restart de nginx —Compose ya recreó frontend/backend con IP nueva, y cortar ahí
 dejaba todo en 502— y termina con error y sin taggear. Se arregla la causa y se
-vuelve a correr con `--force`, que aplica compose, migrations y tag aunque
-ningún repo haya traído commits nuevos (sin el flag, la segunda corrida no
-haría nada porque ya está todo pulleado). `--force` sirve también para aplicar
-un cambio de `.env` sin código nuevo.
+vuelve a correr con `--force`, que reconstruye **todas** las imágenes y aplica
+compose, migrations y tag aunque ningún repo haya traído commits nuevos.
+
+El flag no es un lujo: sin él, la segunda corrida pullea, ve "sin cambios" en
+todos los repos (ya los pulleó la primera), **no reconstruye ninguna imagen** y
+`up -d` deja los contenedores viejos corriendo mientras los repos tienen código
+nuevo. Es el síntoma de "desplegué y no veo los cambios": el `git log` del
+server está al día y la app sigue vieja. `--force` sirve también para aplicar un
+cambio de `.env` sin código nuevo.
 
 **Al sumar un servicio nuevo al stack hay que tocar tres lugares**: el
 `docker-compose.prod.yml`, el mapa `REPO_SERVICE` de `redeploy.sh` (repo → nombre
