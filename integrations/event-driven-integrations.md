@@ -29,11 +29,13 @@ Hay dos formas de hablar con un proveedor, y no se mezclan:
      ├────────────────────────►│ INSERT orders           │                        │                            │                    │
      │                         │ commit                  │                        │                            │                    │
      │                         ├─XADD lis:events:order──►│                        │                            │                    │
-     │◄──── 201 ───────────────┤                        │                        │                            │                    │
+     │◄──── 201 ───────────────┤ (integration_logs:     │                        │                            │                    │
+     │                         │  una fila por proveedor)│                        │                            │                    │
      │                         │                        │◄──XREADGROUP───────────┤                            │                    │
      │                         │                        │   (grupo lis-orchestrator)                          │                    │
-     │                         │◄─POST …/events/pending─────────────────────────┤ regla: send-order-to-labcore│                    │
-     │                         │  (crea order_integration_logs)                  │                            │                    │
+     │                         │◄─POST …/events/routed──────────────────────────┤ regla: send-order-to-labcore│                    │
+     │                         │◄─POST …/events/pending─────────────────────────┤ (held si el proveedor está  │                    │
+     │                         │  (confirma la fila)     │                        │  en pausa: no envía)        │                    │
      │                         │◄─POST …/events/sent────────────────────────────┤                            │                    │
      │                         │                        │                        ├─POST /api/v1/orders───────►│                    │
      │                         │                        │                        │                            ├─(traduce, llama)──►│
@@ -61,15 +63,23 @@ orden. Con el stub, la trazabilidad queda en `received` unos segundos después
   `orders.destination`: si algún día el destino lo elige el usuario en el
   formulario, se agrega la columna y la regla pasa a leerla del payload.
 - **`orders.status` no se toca.** El estado de integración vive en
-  `order_integration_logs`; el estado de la orden es del laboratorio.
+  `integration_logs`; el estado de la orden es del laboratorio.
+- **El sujeto es polimórfico.** `integration_logs.subject_type/subject_id`
+  (hoy `order`); el día que se informen resultados entran por la misma tabla
+  con otro `event_name`, sin tocar el orchestrator.
+- **El LIS registra antes de publicar.** Una fila por proveedor activo al
+  emitir, así lo que no llegó al stream o quedó retenido se ve y se reemite.
+  El orchestrator confirma (`pending`) y avisa a quién ruteó (`routed`).
+  La regla de ruteo sigue en el orchestrator.
 - **El evento lleva la orden completa.** El orchestrator no vuelve a
   preguntar por ella, y lo que se audita como `payload_to_send` es exactamente
   lo que salió del backend. El contrato es `OrderIntegrationPayloadBuilder`
   (backend) ↔ `CanonicalOrder` (adapter).
 - **Sin tabla de alertas por ahora.** `GET /api/v1/integrations/logs?status=error`
   cubre lo mismo hasta que exista un sistema de alertas real.
-- **La emisión nunca falla la orden.** Si Redis no está, el backend loguea y
-  la orden se crea igual; se reenvía a mano desde el LIS.
+- **La emisión nunca falla la orden.** Si Redis no está, la orden se crea
+  igual y la fila queda `held` por `publish_failed`: sale al reanudar el
+  proveedor o al reenviar.
 
 ## Mapeo de códigos de catálogo
 
@@ -210,25 +220,45 @@ mismo alta); si no viene, por `h_external_id`; y si tampoco, crea. Un
 
 `GET /patients/{id}` y `POST /patients` devuelven `external_references`.
 
-## Estados de `order_integration_logs`
+## Estados de `integration_logs`
 
 ```
-pending_send ──► sent ──► received
-                   └────► error
+            ┌─► held ──(reanudar/reenviar)──┐
+pending_send┤                                ├──► sent ──► received
+            └─► skipped                      │       └────► error
+                                             ▼
+                                        pending_send
 ```
 
 | Estado | Quién lo pone | Cuándo |
 | --- | --- | --- |
-| `pending_send` | orchestrator (`…/pending`) | Detectó el evento y una regla coincidió. Crea la fila con `payload_to_send`. Idempotente por `event_id`. |
+| `pending_send` | backend (al emitir) | Registrado para ese proveedor; `published_at` y `stream_entry_id` cuando llegó al stream. El `…/pending` del orchestrator lo confirma (idempotente por `event_id` + `provider`). |
+| `held` | backend | No salió: `held_reason` = `provider_paused` (el proveedor está en pausa) o `publish_failed` (Redis no estaba). Se reemite al reanudar el proveedor. |
+| `skipped` | orchestrator (`…/routed`) | Ninguna regla lo ruteó a ese proveedor. |
 | `sent` | orchestrator (`…/sent`) | Está por llamar al adapter. Marca `sent_at`. |
 | `received` | orchestrator (`…/ack`) | El proveedor aceptó. `external_id`, `payload_received`, `received_at`. |
 | `error` | orchestrator (`…/error`) | Se agotaron los reintentos o el proveedor rechazó. `error_code`, `error_message`, `payload_received`, `failed_at`. |
 
-Cada fila es un evento. Un **reenvío manual**
+Cada fila es (evento, proveedor). Un **reenvío manual**
 (`POST /api/v1/orders/{id}/integrations/{provider}/retry`, permiso
-`integrations.manage`) publica un evento nuevo con `attempt_number + 1` y
-`retry_of_event_id`, y termina en una fila nueva: la historia completa queda
-a la vista.
+`integrations.manage`) publica un evento nuevo con `attempt_number + 1`,
+`retry_of_event_id` y `provider` fijado, y termina en una fila nueva: la
+historia completa queda a la vista. Si el proveedor está en pausa, la fila
+nueva queda `held`.
+
+## Pausas
+
+El tablero *Instrumentos y conexiones* tiene dos palancas (permiso
+`integrations.manage`, quedan en `operation_logs` con quién las accionó):
+
+| Palanca | Endpoint del LIS | Dónde vive | Efecto |
+| --- | --- | --- | --- |
+| Pausar la **lectura** del orquestador | `POST /api/v1/integrations/orchestrator/consumer/pause` / `resume` | Redis (`lis:events:order:paused`), vía el orchestrator | Deja de leer; lo en vuelo termina. Los eventos se acumulan en el stream (lag) y se drenan en orden al reanudar. Sobrevive a un reinicio y vale para todas las instancias. |
+| Pausar los **envíos a un proveedor** | `POST /api/v1/integrations/providers/{code}/pause` / `resume` | `integration_providers.paused_at/paused_by` | Lo que se emite queda `held`; lo que el orchestrator ya tenía en la cola también (el `pending` contesta `held: true`). Al reanudar, el LIS reemite lo retenido en orden, dirigido a ese proveedor, con el payload armado de nuevo. La búsqueda de pacientes no se ve afectada. |
+
+La cola no tiene pausa propia: frenar la escritura perdería órdenes; lo que
+se quiere es frenar la lectura. Apagar el proceso del adapter no es una
+pausa: produce `error` tras los reintentos.
 
 ## Errores y reintentos
 
@@ -238,7 +268,7 @@ a la vista.
 | El adapter devuelve 422 (`VALIDATION_ERROR`, `REJECTED_BY_PROVIDER`, `PROVIDER_AUTH_ERROR`) | `error` sin reintentar: hay que corregir la orden o el mapeo y reenviar. |
 | El backend no acepta un webhook | El evento va a `lis:events:order:dead` con el motivo y se confirma; no traba la cola. |
 | El orchestrator se cae a mitad de un evento | Al reiniciar retoma lo que dejó sin confirmar; lo de instancias muertas se reclama por autoclaim. |
-| Redis no está cuando se crea la orden | La orden se crea, el evento se pierde, queda el log de error del backend. Reenvío manual. |
+| Redis no está cuando se crea la orden | La orden se crea y la fila queda `held` (`publish_failed`). Sale al reanudar el proveedor o al reenviar. |
 
 Un evento reprocesado tras una caída puede llegar dos veces al proveedor. El
 `pending` del backend es idempotente por `event_id` y el alta en la Labcore
@@ -254,18 +284,23 @@ tendría que deduplicar por `event_id`.
 | --- | --- | --- |
 | `GET /api/v1/integrations/status` | `integrations.view` | Estado consolidado para el tablero: orchestrator (`/api/v1/status`: consumer, contadores, health de adapters), stream en Redis (largo, lag, pendientes, cola muerta) y envíos de las últimas 24 h. |
 | `GET /api/v1/integrations/logs/{log}` | `integrations.view` | Una fila con sus payloads. |
-| `POST /api/v1/internal/integrations/events/pending` | `X-Internal-Token` (`lis_orchestrator`) | Crea/actualiza la fila en `pending_send`. |
+| `POST /api/v1/internal/integrations/events/routed` | `X-Internal-Token` (`lis_orchestrator`) | A qué proveedores se ruteó el evento; el resto queda `skipped`. |
+| `POST /api/v1/internal/integrations/events/pending` | ídem | Confirma/crea la fila en `pending_send`. Responde `held: true` si el proveedor está en pausa. |
 | `POST /api/v1/internal/integrations/events/sent` | ídem | Marca `sent`. |
 | `POST /api/v1/internal/integrations/events/ack` | ídem | Marca `received`. Si trae `references.patient_external_id`, enlaza al paciente (`order_ack`). |
 | `POST /api/v1/internal/integrations/events/error` | ídem | Marca `error`. |
 | `GET /api/v1/patients/lookup` | usuario | La búsqueda de admisión: `local` + `external` (Labcore) + `meta.external_unavailable`. |
 | `GET /api/v1/orders/{order}/integrations` | usuario | La trazabilidad de una orden, con payloads. |
-| `POST /api/v1/orders/{order}/integrations/{provider}/retry` | `integrations.manage` | Reenvía. Responde `202` con el `event_id` nuevo; `503` si el bus no está. |
-| `GET /api/v1/integrations/logs` | `integrations.view` | Listado global, filtros `status`, `provider`, `order_id`, `external_id`, `from`, `to`. Sin payloads. |
+| `POST /api/v1/orders/{order}/integrations/{provider}/retry` | `integrations.manage` | Reenvía. Responde `202` con la fila nueva; si es `held`, no salió todavía. |
+| `GET /api/v1/integrations/logs` | `integrations.view` | Listado global, filtros `status`, `provider`, `subject_type`, `subject_id`, `external_id`, `from`, `to`. Sin payloads. |
+| `POST /api/v1/integrations/orchestrator/consumer/pause` / `resume` | `integrations.manage` | Frena / reanuda la lectura del orchestrator. |
+| `POST /api/v1/integrations/providers/{code}/pause` / `resume` | `integrations.manage` | Frena / reanuda los envíos a un proveedor; `resume` devuelve `released` y `still_held`. |
 
 ### lis-orchestrator
 
-`GET /health`, `GET /ready`, `GET /api/v1/rules` (reglas y proveedores cargados).
+`GET /health`, `GET /ready`, `GET /api/v1/rules` (reglas y proveedores cargados),
+`GET /api/v1/status`, `POST /api/v1/consumer/pause` / `resume` (con
+`X-Internal-Token` = `BACKEND_INTERNAL_TOKEN`).
 
 ### lis-adapter-labcore
 
@@ -284,6 +319,7 @@ tendría que deduplicar por `event_id`.
 | `occurred_at` | ISO-8601 |
 | `attempt_number` | `1` (`n+1` en reenvíos) |
 | `retry_of_event_id` | vacío, o el `event_id` anterior |
+| `provider` | vacío (a quien diga la regla) o el código del proveedor al que va dirigido |
 | `source` | `lis-backend` |
 | `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]`, `samples[]`, `mappings` |
 
