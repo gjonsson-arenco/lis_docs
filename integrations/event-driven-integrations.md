@@ -1,16 +1,17 @@
 # Integraciones con proveedores: orchestrator y adapters
 
 Cómo una orden creada en el LIS llega a un proveedor externo (hoy Labcore),
-cómo el usuario ve en qué quedó, y cómo la admisión busca pacientes en
-Labcore antes de darlos de alta. Este documento es el modelo tal como quedó
+cómo le siguen sus cambios (estudios que entran y salen) y su toma de
+muestra, cómo el usuario ve en qué quedó, y cómo la admisión busca pacientes
+en Labcore antes de darlos de alta. Este documento es el modelo tal como quedó
 implementado; los detalles de cada pieza están en el README de su repo.
 
 | Pieza | Repo | Rol |
 | --- | --- | --- |
-| Backend | `lis-backend` | Crea la orden, **emite** `order.created`, **guarda la trazabilidad** que le reportan, la expone a la UI. Para la búsqueda de pacientes le pega **directo al adapter**. |
+| Backend | `lis-backend` | Crea la orden, **emite** `order.created`, `order.updated` y `order.samples_registered`, **guarda la trazabilidad** que le reportan, la expone a la UI. Para la búsqueda de pacientes le pega **directo al adapter**. |
 | Orchestrator | `lis-orchestrator` | Lee los eventos, aplica las reglas, llama al adapter con reintentos, reporta cada paso al backend. Sólo para el flujo de eventos. |
 | Adapter | `lis-adapters/lis-adapter-labcore` | Traduce la orden canónica al formato del proveedor y llama a su API; traduce los pacientes del proveedor al canónico del LIS. Stateless. Es el **único** que conoce la URL, la clave y el contrato de Labcore. |
-| Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. `GET /api/v1/patients`: búsqueda por prefijo en `Historias`. |
+| Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. `PUT /api/v1/orders/{number}`: la misma sincronización, pero 404 si no existe. `PUT /api/v1/orders/{number}/samples`: estado de los tubos tras la toma. `GET /api/v1/patients`: búsqueda por prefijo en `Historias`. |
 
 Hay dos formas de hablar con un proveedor, y no se mezclan:
 
@@ -52,6 +53,19 @@ El usuario no espera a nada de esto: el `201` vuelve apenas commitea la
 orden. Con el stub, la trazabilidad queda en `received` unos segundos después
 (el consumer bloquea hasta 5 s esperando eventos, no hace polling).
 
+Los otros dos eventos recorren exactamente el mismo camino; sólo cambia lo
+que el adapter hace al final:
+
+| Evento del LIS | Cuándo lo emite el backend | `event_type` de la regla | Adapter → Labcore |
+| --- | --- | --- | --- |
+| `order.created` | `POST /orders`, tras el commit | `send-order` | `POST /api/v1/orders` |
+| `order.updated` | `POST /orders/{id}/studies`, `DELETE /orders/{id}/studies/{study}`, `PATCH /orders/{id}` | `update-order` | `PUT /api/v1/orders/{number}` (si Labcore no la tiene, `POST`) |
+| `order.samples_registered` | `POST /orders/{id}/samples/register` con al menos una decisión | `update-samples` | `PUT /api/v1/orders/{number}/samples` (si Labcore no la tiene, primero `POST`) |
+
+Cada evento necesita su propia regla en el ABM (el seeder crea las tres para
+Labcore). Sin regla para `order.updated`, por ejemplo, los cambios de
+estudios no salen y el orchestrator los marca `skipped`.
+
 ## Decisiones
 
 - **El adapter no habla con el backend.** El único que reporta es el
@@ -81,6 +95,18 @@ orden. Con el stub, la trazabilidad queda en `received` unos segundos después
   preguntar por ella, y lo que se audita como `payload_to_send` es exactamente
   lo que salió del backend. El contrato es `OrderIntegrationPayloadBuilder`
   (backend) ↔ `CanonicalOrder` (adapter).
+- **Los cambios viajan como foto, no como delta.** `order.updated` no dice
+  "se agregó el estudio X": lleva la orden entera tal como quedó, y la Labcore
+  API calcula qué entra y qué sale (sin borrar nunca una prueba con resultado
+  validado). Lo mismo `order.samples_registered`: todas las muestras con su
+  estado, no sólo las que se tocaron. Así un evento que se perdió o llegó
+  desordenado se corrige solo con el siguiente, y un reenvío manual siempre
+  manda el estado actual. Decisión del usuario (2026-09-17) frente a eventos
+  granulares por estudio y por tubo.
+- **El adapter completa lo que falte.** Un `update-*` sobre una orden que
+  Labcore nunca recibió (el alta falló y nadie la reenvió) no es un error: el
+  adapter la da de alta y sigue. El `PUT` de la Labcore API sí devuelve 404,
+  para que un consumidor que no es el adapter se entere.
 - **Sin tabla de alertas por ahora.** `GET /api/v1/integrations/logs?status=error`
   cubre lo mismo hasta que exista un sistema de alertas real.
 - **La emisión nunca falla la orden.** Si Redis no está, la orden se crea
@@ -249,8 +275,10 @@ Cada fila es (evento, proveedor). Un **reenvío manual**
 (`POST /api/v1/orders/{id}/integrations/{provider}/retry`, permiso
 `integrations.manage`) publica un evento nuevo con `attempt_number + 1`,
 `retry_of_event_id` y `provider` fijado, y termina en una fila nueva: la
-historia completa queda a la vista. Si el proveedor está en pausa, la fila
-nueva queda `held`.
+historia completa queda a la vista. Reenvía **el último evento** que se le
+mandó a ese proveedor (si lo último fue la toma de muestra, sale
+`order.samples_registered`), con el payload armado de nuevo sobre el estado
+actual de la orden. Si el proveedor está en pausa, la fila nueva queda `held`.
 
 ## Pausas
 
@@ -324,7 +352,7 @@ tendría que deduplicar por `event_id`.
 | Campo | Ejemplo |
 | --- | --- |
 | `event_id` | `evt_01m270yjmbqj79k796805ag8bm` (ULID) |
-| `event_name` | `order.created` |
+| `event_name` | `order.created`, `order.updated` u `order.samples_registered` |
 | `aggregate_type` / `aggregate_id` | `order` / `26` |
 | `occurred_at` | ISO-8601 |
 | `attempt_number` | `1` (`n+1` en reenvíos) |
@@ -374,6 +402,17 @@ En producción todo sale del `.env` de `lis-infra`
   `_159145`. El adapter los manda como `document: null`; el LIS no deduplica
   ni prellena con ellos. `h_numero` real viene sin puntos.
 - **Resultados de vuelta** (`send-result` / Labcore → LIS): no está diseñado.
+- **Codificación de `mo_estado` en Labcore.** La Labcore API traduce
+  `pending` / `collected` / `cancelled` con `Lis:Defaults:SampleStates`
+  (0 / 1 / 2 por defecto). El 0 es el del alta; los otros dos son una
+  suposición: confirmarlos contra la base real antes de prender la regla
+  `update-samples-in-labcore` en producción. Cancelar un tubo no cancela sus
+  pruebas en `Laboratorios`.
+- **Muestras nuevas después del alta.** Agregar un estudio en el LIS no crea
+  muestras nuevas hoy; si algún día lo hace, `order.updated` ya las lleva y
+  el `PUT` de Labcore las crea. Un tubo que Labcore no conoce en el
+  `PUT …/samples` es un 400 (`REJECTED_BY_PROVIDER`): se resuelve reenviando
+  la orden y después la toma.
 - **UI, hecho**: *Instrumentos y conexiones → Integraciones* (tarjetas de
   orquestador, cola, adapters y envíos 24 h + tabla de eventos con detalle y
   reenvío), pestaña *Integraciones* en la ficha de la orden, y
