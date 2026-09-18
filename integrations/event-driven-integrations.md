@@ -169,10 +169,11 @@ Administración (`integrations.manage`), bajo `/api/v1/admin/integrations`:
 ## Búsqueda de pacientes en el proveedor (sincrónico)
 
 **Labcore es el maestro de pacientes.** El LIS los va dando de alta a medida
-que llegan. Sin esto, el alta de orden mandaba `patient.externalId = id LIS`,
-Labcore no encontraba ninguna Historia con ese `h_external_id` y **creaba una
-nueva** para cada paciente histórico: un duplicado por paciente. La búsqueda
-y la referencia externa cierran ese circuito.
+que llegan. **Labcore no guarda ningún id del LIS** (su esquema no tiene
+`h_external_id` ni nada parecido): el enlace vive sólo acá, en
+`patient_external_references`, con el `h_id` que el LIS aprende de la búsqueda
+o del `ack` de la primera orden. La búsqueda evita crear una Historia nueva por
+cada paciente histórico.
 
 ```
   Admisión                 lis-backend                          lis-adapter-labcore        Labcore API
@@ -244,11 +245,13 @@ id externo es de otro paciente, se loguea un warning y no se toca.
 ### Cómo viaja en el alta de orden
 
 El payload canónico lleva `patient.external_references = {labcore: {external_id, external_number}}`.
-El adapter lo manda como `patient.id` (`h_id`) en el `CreateOrderRequest`.
-Labcore resuelve al paciente en este orden: por `patient.id` (y si esa
-Historia no tenía `h_external_id`, la enlaza con `patient.externalId` en el
-mismo alta); si no viene, por `h_external_id`; y si tampoco, crea. Un
-`patient.id` inexistente rechaza la orden con `400` antes de escribir nada.
+El adapter lo manda como `patient.id` (`h_id`) en el `CreateOrderRequest`; el
+id del LIS no viaja. Labcore resuelve al paciente en este orden: una orden que
+ya existe conserva el suyo; con `patient.id`, esa Historia (si no existe,
+`400` antes de escribir nada); sin `patient.id`, busca por tipo y número de
+documento — una coincidencia la reusa, más de una rechaza con `400` en
+`patient.documentNumber` para que admisión elija con la búsqueda —; y si no
+hay ninguna, la crea. En todos los casos el `h_id` vuelve en el `ack`.
 
 `GET /patients/{id}` y `POST /patients` devuelven `external_references`.
 
