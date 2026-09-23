@@ -233,7 +233,8 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 |---|---|---|
 | `clone-repos.sh` | server | Clona los repos que falten con el mapeo carpeta → repo → rama (§3) |
 | `redeploy.sh` | server | Actualización normal: pull + build + `up -d` + migrations + reload (§5.1) |
-| `db-fresh.sh` | server | `migrate:fresh` (**borra todo**), opcionalmente `--seed` |
+| `db-fresh.sh` | server | `migrate:fresh` (**borra todo**), opcionalmente `--seed`; respalda los usuarios antes |
+| `export-users.sh` | server | Respalda usuarios, roles y favoritos al JSON que restaura `CebacUsersSeeder` |
 | `seed-cebac.sh` | server | Corre `CebacSeeder` (o un seeder puntual) sin tocar el schema |
 | `create-chat-db.sh` | server | Crea la base y el usuario del chat en MySQL (idempotente; lo llama `redeploy.sh`) |
 | `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
@@ -243,7 +244,7 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `push-geo-env.sh` | **tu máquina** | Sube las keys de Amazon Location a los `.env.prod` del backend y el front |
 | `set-infra-env.sh` | **tu máquina** | Setea variables en el `.env` de `lis-infra` del server (cadena de conexión de Labcore, claves) sin pasarlas por la línea de comando |
 
-Tres cosas que valen para varios de ellos:
+Cuatro cosas que valen para varios de ellos:
 
 - **Todo lo que toque la tabla `rules` por fuera del ABM tiene que terminar en
   un reload del engine** (`db-fresh.sh`, `seed-cebac.sh` y `redeploy.sh` ya lo
@@ -252,6 +253,16 @@ Tres cosas que valen para varios de ellos:
 - **`db-fresh.sh` pide escribir el nombre de la base para confirmar** (`--yes`
   lo saltea). Dropea todas las tablas: es para preparar/rearmar una instancia,
   no para una base con datos reales.
+- **Los usuarios son lo único que no se regenera solo.** Los catálogos vuelven
+  de los CSV legacy, pero los usuarios (con su `cognito_sub`), los roles que se
+  armaron desde el ABM y los módulos favoritos no están en ningún export.
+  `db-fresh.sh` corre `export-users.sh` antes de dropear y aborta sin tocar la
+  base si el respaldo falla (`--no-export` para una instancia de estreno). El
+  JSON queda fechado en `/opt/lis/backups/cebac-users/` del host, porque el
+  backend no tiene volumen sobre el código y el próximo redeploy se lleva lo
+  que se haya escrito adentro del contenedor. **Lo restaura `CebacUsersSeeder`,
+  así que el rescate sólo se completa si el fresh va con `--seed`**: sin eso la
+  base queda sin usuarios hasta que alguien seedee.
 - **Los archivos que no están en el repo no llegan con el deploy.** Los PDF de
   indicaciones viven bajo `storage/`, que está gitignoreado, así que ni el
   clone ni el build los traen. Van a `/opt/lis/storage/requirements` en el
