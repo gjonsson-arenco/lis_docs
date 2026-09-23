@@ -237,6 +237,7 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `export-users.sh` | server | Respalda usuarios, roles y favoritos al JSON que restaura `CebacUsersSeeder` |
 | `seed-cebac.sh` | server | Corre `CebacSeeder` (o un seeder puntual) sin tocar el schema |
 | `create-chat-db.sh` | server | Crea la base y el usuario del chat en MySQL (idempotente; lo llama `redeploy.sh`) |
+| `truncate-chat.sh` | server | Vacía la base del chat y sus claves en Redis (lo llama `db-fresh.sh`; a mano para limpiar el chat sin tocar el LIS) |
 | `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
 | `copy-requirements.sh` | **tu máquina** | Sube los PDF de indicaciones al volumen del backend |
 | `tag-release.sh` | server | Taggea el HEAD de todos los repos con un mismo nombre (lo llama `redeploy.sh`; a mano para bootstrap) (§5.3) |
@@ -244,7 +245,7 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `push-geo-env.sh` | **tu máquina** | Sube las keys de Amazon Location a los `.env.prod` del backend y el front |
 | `set-infra-env.sh` | **tu máquina** | Setea variables en el `.env` de `lis-infra` del server (cadena de conexión de Labcore, claves) sin pasarlas por la línea de comando |
 
-Cuatro cosas que valen para varios de ellos:
+Cinco cosas que valen para varios de ellos:
 
 - **Todo lo que toque la tabla `rules` por fuera del ABM tiene que terminar en
   un reload del engine** (`db-fresh.sh`, `seed-cebac.sh` y `redeploy.sh` ya lo
@@ -263,6 +264,14 @@ Cuatro cosas que valen para varios de ellos:
   que se haya escrito adentro del contenedor. **Lo restaura `CebacUsersSeeder`,
   así que el rescate sólo se completa si el fresh va con `--seed`**: sin eso la
   base queda sin usuarios hasta que alguien seedee.
+- **El chat sobrevive al fresh, pero queda mal apuntado, y por eso se vacía.**
+  Tiene base propia (`lis_chat`) y `migrate:fresh` no la toca, pero todo lo que
+  guarda identifica a la gente por el `users.id` del LIS, y el respaldo de
+  usuarios hace upsert por email sin preservar el id: en el fresh los ids se
+  reasignan y el historial pasa a colgar de otra persona. `db-fresh.sh` llama a
+  `truncate-chat.sh` después del `migrate:fresh` (`--keep-chat` lo saltea, a
+  sabiendas de que el chat queda desalineado). **El historial del chat no se
+  respalda en ningún lado**: no hay un `export-users.sh` equivalente.
 - **Los archivos que no están en el repo no llegan con el deploy.** Los PDF de
   indicaciones viven bajo `storage/`, que está gitignoreado, así que ni el
   clone ni el build los traen. Van a `/opt/lis/storage/requirements` en el
