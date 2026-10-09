@@ -12,6 +12,8 @@ implementado; los detalles de cada pieza están en el README de su repo.
 | Orchestrator | `lis-orchestrator` | Lee los eventos, aplica las reglas, llama al adapter con reintentos, reporta cada paso al backend. Sólo para el flujo de eventos. |
 | Adapter | `lis-adapters/lis-adapter-labcore` | Traduce la orden canónica al formato del proveedor y llama a su API; traduce los pacientes del proveedor al canónico del LIS. Stateless. Es el **único** que conoce la URL, la clave y el contrato de Labcore. |
 | Labcore API | `C:\Projects\Customs\labcore api` (.NET, propia) | `POST /api/v1/orders` con `X-Api-Key`: alta idempotente por número de orden sobre la base del LIS Labcore. `PUT /api/v1/orders/{number}`: la misma sincronización, pero 404 si no existe. `PUT /api/v1/orders/{number}/samples`: estado de los tubos tras la toma. `GET /api/v1/patients`: búsqueda por prefijo en `Historias`. |
+| Adapter | `lis-adapters/lis-adapter-healthbook` | Lo mismo para Healthbook, el portal del paciente (puerto 3022): traduce la orden canónica a su API de integración. Recibe `order.created`, `order.updated` y `order.patient_reassigned`; no las muestras. Su cara sincrónica es la consulta de cuenta del portal (`GET /patients/{id}/portal-status` en el backend). Ver su README y `integrations/healthbook-adapter-brief.md`. |
+| Healthbook | `lis-healthbook/lis-healthbook-back` (Laravel, propia) | `PUT /api/v1/integration/orders/{number}` con `X-Internal-Token`: foto completa e idempotente por número (paciente, cabecera, estudios). `PUT …/orders/{number}/patient`: cambio de paciente. `GET …/patients/account`: si el paciente tiene cuenta en el portal. |
 
 Hay dos formas de hablar con un proveedor, y no se mezclan:
 
