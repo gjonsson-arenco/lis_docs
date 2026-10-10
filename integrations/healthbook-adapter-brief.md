@@ -144,7 +144,7 @@ es maestro de pacientes. En lis-backend `patient_lookup` queda en `false`.
 PORT=3022
 INTERNAL_TOKEN=lis-adapter-healthbook-local-token
 HEALTHBOOK_MODE=stub|http
-HEALTHBOOK_API_URL=http://localhost:8001
+HEALTHBOOK_API_URL=http://localhost:8100
 HEALTHBOOK_API_TOKEN=            # el que da integration:client-create
 HEALTHBOOK_API_TIMEOUT_MS=10000
 HEALTHBOOK_INPATIENT_ORDER_TYPE_CODES=I,G,N,H,INT   # fallback del setting del LIS
@@ -202,7 +202,7 @@ Comprobado contra la copia de producción de CEBAC (2026-10-09):
 
 ## Para probar punta a punta
 
-En `lis-healthbook-back`: `php artisan serve --port=8001`, crear el cliente
+En `lis-healthbook-back`: `php artisan serve --port=8100`, crear el cliente
 con `php artisan integration:client-create lis-adapter-healthbook arenco` y
 poner el token en `HEALTHBOOK_API_TOKEN`. Ojo: el `.env` de ese repo apunta a
 una copia de la base productiva (RDS `healthbook-test`); para probar sin
