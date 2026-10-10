@@ -246,6 +246,22 @@ Agregar, al nivel de `found`, el pedido abierto más reciente del paciente
 Es lo que le permite al LIS retomar la carga del código si la pantalla se
 recargó. `accounts[].pending_enrollment` sigue siendo el booleano de hoy.
 
+#### `GET /integration/patients/account`: fechas en `accounts[]`
+
+La pestaña Healthbook de la ficha del LIS muestra cuándo se verificó cada
+canal y cuándo entró el paciente por última vez. Agregar a cada cuenta:
+
+- `channels.email.verified_at` y `channels.whatsapp.verified_at`: el
+  `*_verified_at` de `users`, ISO 8601, o `null`.
+- `last_login_at`: el último ingreso al portal. Healthbook no ve el login
+  (va directo a Cognito), así que es el primer request autenticado de cada
+  sesión: un middleware que marque `users.last_login_at` cuando el token que
+  llega es de una sesión que todavía no vio (o, más simple, una vez por hora
+  por usuario). `last_activity_at` queda como está: es el último registro
+  de auditoría, que puede ser una acción de la integración y no del paciente.
+
+El LIS ya los lee y los muestra cuando vienen; si faltan, muestra sólo lo de hoy.
+
 ### Mensajes
 
 - El código asistido reusa `Communication::AccessCode` (`code`,
