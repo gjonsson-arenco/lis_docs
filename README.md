@@ -27,6 +27,8 @@ Documentación del frontend monorepo con Next.js y Mantine UI.
 ### 🔀 [Integraciones](./integrations/)
 Integraciones event-driven con proveedores externos (orchestrator + adapters).
 - **event-driven-integrations.md** - Flujo orden → Redis Streams → lis-orchestrator → adapter (Labcore), trazabilidad y reintentos; búsqueda sincrónica de pacientes en Labcore y la referencia externa del paciente
+- **medical-orders-sync.md** - Órdenes médicas entre el LIS on-premise y Healthbook en la nube: uuid compartido, dueño de cada dato, eventos hacia Healthbook y pull del feed hacia el LIS
+- **healthbook-medical-orders-brief.md** - Lo que Healthbook tiene que construir para eso: outbox, feed, upsert por uuid y bucket compartido
 
 ### 🔌 [Broker Gateway](./broker-gateway/)
 Documentación del gateway broker NestJS con adaptador Swiss Medical.
@@ -47,6 +49,7 @@ Documentación del motor de matching clínico basado en FastAPI.
 ### 🚀 [Infra](./infra/)
 Documentación de infraestructura y deploy.
 - **linux-deploy-guide.md** - Guía de deploy on-premise en Linux con Docker (build directo en el server, sin registry), basada en la experiencia real del primer deploy on-premise
+- **cebac-s3-documents.md** - Documentos de CEBAC en S3 compartido con Healthbook: bucket, IAM, variables y pasaje de disco local a S3 sin corte
 
 ### 📝 Documentos transversales
 - **[FUTURE_IMPROVEMENTS.md](./FUTURE_IMPROVEMENTS.md)** - Backlog vivo de mejoras futuras agrupado por módulo, con prioridad y ubicación exacta de cada cambio.
