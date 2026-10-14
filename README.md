@@ -50,6 +50,9 @@ Documentación del motor de matching clínico basado en FastAPI.
 Documentación de infraestructura y deploy.
 - **linux-deploy-guide.md** - Guía de deploy on-premise en Linux con Docker (build directo en el server, sin registry), basada en la experiencia real del primer deploy on-premise
 - **cebac-s3-documents.md** - Documentos de CEBAC en S3 compartido con Healthbook: bucket, IAM, variables y pasaje de disco local a S3 sin corte
+- **cebac-bitra-aws.md** - Deploy de bitra cebac en AWS (CloudFront, ECS Fargate, Lambdas de Cognito, messaging centralizado con SQS) y APK de Android
+- **cebac-bitra-aws-todo.md** - To-do de AWS para ese deploy, en orden y con checkboxes
+- **cebac-bitra-aws-deployer-policy.json** - Política inline del usuario IAM de deploy (roles y políticas sólo con los prefijos de los stacks)
 
 ### 📝 Documentos transversales
 - **[FUTURE_IMPROVEMENTS.md](./FUTURE_IMPROVEMENTS.md)** - Backlog vivo de mejoras futuras agrupado por módulo, con prioridad y ubicación exacta de cada cambio.

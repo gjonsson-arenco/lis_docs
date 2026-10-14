@@ -1,0 +1,75 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RolesOfTheStacks",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:UpdateAssumeRolePolicy",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PutRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies",
+        "iam:PassRole"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:role/bitra-cebac-*",
+        "arn:aws:iam::*:role/healthbook-cebac-*",
+        "arn:aws:iam::*:role/lis-messaging-cebac-*"
+      ]
+    },
+    {
+      "Sid": "ManagedPoliciesOfTheStacks",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreatePolicy",
+        "iam:DeletePolicy",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:CreatePolicyVersion",
+        "iam:DeletePolicyVersion",
+        "iam:ListPolicyVersions",
+        "iam:TagPolicy"
+      ],
+      "Resource": [
+        "arn:aws:iam::*:policy/bitra-cebac-*",
+        "arn:aws:iam::*:policy/lis-messaging-cebac-*"
+      ]
+    },
+    {
+      "Sid": "ServiceLinkedRoles",
+      "Effect": "Allow",
+      "Action": "iam:CreateServiceLinkedRole",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "iam:AWSServiceName": [
+            "ecs.amazonaws.com",
+            "elasticloadbalancing.amazonaws.com",
+            "ecs.application-autoscaling.amazonaws.com"
+          ]
+        }
+      }
+    },
+    {
+      "Sid": "ReadIam",
+      "Effect": "Allow",
+      "Action": [
+        "iam:ListRoles",
+        "iam:ListPolicies",
+        "iam:GetUser",
+        "iam:ListAttachedUserPolicies"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
