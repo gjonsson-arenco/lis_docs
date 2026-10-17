@@ -98,6 +98,20 @@ Hecho con las plantillas de `lis-infra/aws/bitra-cebac/` (rama `deploy/cebac`):
 - [ ] **Cuentas de prueba en el pool nuevo:**
       `php artisan identity:provision-legacy --user=…` con unos pocos
       pacientes, no con todos.
+- [ ] **Limpieza de usuarios no verificados (corte):**
+      `php artisan users:purge-unverified --dry-run` y después sin `--dry-run`,
+      sobre la copia definitiva. Borra los pacientes sin canal verificado con
+      sus vínculos a fichas; criterio `User::hasVerified` (cuenta el registro
+      por WhatsApp de v1). Antes, borrarles el `cognito_sub` del pool viejo a
+      los 11 usuarios de prueba.
+- [ ] **Alta silenciosa de los registrados (corte):**
+      `php artisan identity:provision-legacy --dry-run` y después completo, en
+      una task de ECS (decenas de miles de llamadas a Cognito). Resolver a
+      mano los `AliasExistsException` (contacto repetido entre usuarios) que
+      liste al final.
+- [ ] **Plantilla de autenticación de Meta** para `healthbook.sign_in_code` y
+      `healthbook.access_code`: sin ella los códigos salen sólo por email
+      (ver `catalog.ts` del messaging).
 - [x] 💻 La IP real del cliente: confiar en la red del ALB y tomar la IP del
       header `CloudFront-Viewer-Address`. Sin esto, los límites por IP se
       comparten entre todos los pacientes.
@@ -122,6 +136,11 @@ Ver `lis-healthbook-back/aws/cognito-auth/README.md`.
 - [x] `describe-user-pool-client` y, después, `update-user-pool-client` con
       `ALLOW_CUSTOM_AUTH` además de los flujos que ya tiene.
 - [ ] **Probar:** ingreso por código con un email verificado en SES.
+- [ ] **Antes de probar con datos reales:** prender la setting `messagingSandbox`
+      en Configuración de bitra (y cargar nuestros contactos en
+      `messagingSandboxAllowlist`), para que nada le llegue a los pacientes:
+      los mensajes quedan en Administración > Mensajes retenidos. Apagarla
+      antes de abrir a pacientes.
 
 ## 5. bitra-web
 

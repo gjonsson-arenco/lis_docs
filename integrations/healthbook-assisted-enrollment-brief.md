@@ -267,11 +267,15 @@ El LIS ya los lee y los muestra cuando vienen; si faltan, muestra sólo lo de ho
 - El código asistido reusa `Communication::AccessCode` (`code`,
   `expires_in_minutes`).
 - Bienvenida nueva, `Communication::AssistedWelcome`
-  (`healthbook.assisted_welcome`): "ya tenés acceso a Healthbook con este
-  WhatsApp/mail; entrá con un código, o elegí una contraseña desde
-  <login>/ingresar con código". Sin links con token: el canal ya está
-  verificado y la persona entra por el camino normal. `Welcome` queda para el
-  empadronamiento propio.
+  (`healthbook.assisted_welcome`, datos `name`, `channel`, `login_url`): "ya
+  tenés acceso al portal con este WhatsApp/mail; para entrar no necesitás
+  contraseña: abrí el login y pedí un código". `login_url` lleva el contacto
+  (`/login?contacto=…`). No pasa por `/acceso`, que es la activación de quien
+  no se empadronó en la admisión; si quiere una contraseña la elige en "Mi
+  cuenta". Sin links con token: el canal ya está verificado. La plantilla está
+  en el catálogo de lis-messaging-service (mail y WhatsApp
+  `healthbook_bienvenida_asistida`). `Welcome` queda para el empadronamiento
+  propio.
 
 ### Auditoría
 
