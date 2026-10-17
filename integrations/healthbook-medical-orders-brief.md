@@ -9,6 +9,20 @@ documento es el contrato que Healthbook tiene que cumplir. El diseño completo
 y las razones están en [medical-orders-sync.md](./medical-orders-sync.md):
 **leerlo primero**, sobre todo "Quién es dueño de qué".
 
+> **Estado (2026-10-17): implementado en `lis-healthbook-back`** tal como está
+> acá, con dos agregados que no figuraban en el contrato original:
+>
+> - `PUT /medical-orders/{uuid}` de una orden **nueva** cuyo paciente no usa la
+>   app (ni él ni un tutor con cuenta habilitada y canal verificado) responde
+>   `200 { "medical_order": null, "created": false, "stored": false, "reason":
+>   "PatientNotRegistered", "patient": {…} | null }` y no guarda nada. Las
+>   respuestas normales llevan `"stored": true`.
+> - Con el disco de subidas local, `files[].s3` es `null` y `files[].url` es
+>   una ruta firmada de Healthbook (`GET /public/medical-order-files/{file}`),
+>   no una URL de S3.
+>
+> Lo que sigue es el contrato original, sin cambios.
+
 Antes de empezar, leer también:
 
 - en el código de Healthbook: `App\Models\MedicalOrder`,

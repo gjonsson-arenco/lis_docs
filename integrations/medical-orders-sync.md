@@ -66,6 +66,26 @@ resolver conflictos. En cambio, cada parte de la orden tiene un solo dueño:
 | **Lo que hizo el laboratorio**: estudios revisados, médico del catálogo, diagnóstico, estado `used` / `cancelled`, orden de laboratorio en la que se usó | El LIS | Healthbook lo muestra (por ejemplo, "tu orden ya se usó en la admisión 20260031"). |
 | **El paciente** | El LIS es maestro | Healthbook lo reconoce como en las órdenes de laboratorio. |
 
+### Quién recibe qué (2026-10-17)
+
+- Una orden que nace en **Healthbook** (portal o bot) siempre llega al LIS.
+- Una que nace en el **LIS** llega a Healthbook **sólo si el paciente está
+  registrado en la app**: él, o un tutor suyo, con una cuenta habilitada y un
+  canal verificado (`Patient::hasRegisteredAccount()` en Healthbook). No
+  alcanza con tener ficha allá. La decisión la toma Healthbook al recibir el
+  `PUT`: si el paciente no usa la app contesta `200 { stored: false, reason:
+  "PatientNotRegistered" }` y no crea nada, ni la ficha. El adapter lo devuelve
+  como `status: skipped` con `external_id: null`; en `integration_logs` queda
+  `received` con esa respuesta. No es un error ni se reintenta.
+- **Cuando el paciente se empadrona desde la admisión**, el LIS reemite como
+  `medical_order.updated` sus recetas no canceladas (`MedicalOrderResender`,
+  al cerrar el código del empadronamiento asistido) y Healthbook, que ahora
+  conoce la cuenta, las guarda. Si el paciente se registra solo desde la app,
+  el LIS no se entera y las recetas anteriores no viajan hasta que cambien:
+  queda pendiente (ver "Qué falta").
+- Una orden que **ya existe** en Healthbook se actualiza siempre, nazca donde
+  nazca.
+
 Consecuencias concretas:
 
 - Si el paciente **archiva o borra** la orden en el portal, el LIS la **cancela
@@ -171,7 +191,7 @@ Los eventos los dispara `MedicalOrderService` después del commit (listeners
   tiene. En el seed de CEBAC quedan **inactivas** hasta que Healthbook tenga el
   endpoint (Admin > Integraciones).
 
-## Qué está hecho (2026-10-10)
+## Qué está hecho (2026-10-17)
 
 **lis-backend**
 
@@ -202,6 +222,38 @@ Los eventos los dispara `MedicalOrderService` después del commit (listeners
 - Contenedor `scheduler` (`schedule:work`) y `MEDICAL_ORDER_PULL_ENABLED`
   (apagado).
 
+**lis-healthbook-back (2026-10-17)**
+
+- Migración `2026_10_17_000001_add_lis_sync_to_medical_orders`: `uuid`,
+  `origin`, `channel`, `lab_status`, `lab_number`, `order_number`,
+  `diagnosis`, `physician`, `received_at`, `lis_synced_at`;
+  `medical_order_files.external_id`; tabla `medical_order_studies`.
+- Scopes `medical_orders.read` / `medical_orders.write`; los tres endpoints
+  del brief (`App\Services\Integration\MedicalOrderSync`); el outbox
+  `integration_outbox` (stream `medical_orders`) escrito por
+  `App\Services\MedicalOrders\MedicalOrders` en alta y borrado;
+  `integration:outbox-purge` diario.
+- La regla de "quién recibe qué": `stored: false` para una orden nueva del
+  LIS cuyo paciente no usa la app.
+- Archivos: `MedicalOrderFileStore` (copia desde el bucket del LIS con
+  `CopyObject`, `{bucket, key}` con el `root` del disco, URL firmada de S3 o
+  ruta firmada propia `GET /public/medical-order-files/{file}` con disco
+  local). `AWS_ROOT` / `UPLOADS_AWS_ROOT` en `filesystems.php`.
+- El portal muestra `origin` y `lab` (estado, orden en que se usó, médico,
+  estudios) en `MedicalOrderResource`; web y app marcan "Cargada en el
+  laboratorio" y "Usada en la orden X".
+- 10 tests de feature (`MedicalOrderSyncTest`).
+
+**lis-adapter-healthbook (2026-10-17)**
+
+- `stored: false` → recibo `skipped` sin `external_id`; marcador
+  `[healthbook:not-registered]` en el stub.
+
+**lis-backend (2026-10-17)**
+
+- `MedicalOrderResender`: al completar el empadronamiento asistido se
+  reemiten las recetas vigentes del paciente.
+
 **Probado**
 
 - Tests unitarios del backend y jest del adapter (76).
@@ -215,8 +267,14 @@ Los eventos los dispara `MedicalOrderService` después del commit (listeners
 
 ## Qué falta
 
-- **Healthbook**: todo el brief. Hasta entonces, contra el Healthbook real el
-  adapter da 404 y sólo funciona el stub.
+- **Smoke punta a punta** LIS ↔ Healthbook local con el adapter en `http`
+  (el lado de Healthbook se probó con sus tests de feature; el del LIS, con el
+  stub).
+- **Registro espontáneo en la app.** Si el paciente se empadrona solo (sin
+  pasar por la admisión), el LIS no se entera y sus recetas anteriores no
+  viajan. Opciones: que Healthbook publique en el outbox un evento
+  `patient_registered` que el LIS lea y conteste reemitiendo, o que el LIS
+  reemita al consultar `portal-status` y ver `registered` por primera vez.
 - **Front del LIS**:
   - la bandeja de "órdenes del portal sin paciente" (listar, buscar el
     paciente, asignar, descartar);
@@ -226,9 +284,12 @@ Los eventos los dispara `MedicalOrderService` después del commit (listeners
   OCR/IA sola: hay que analizarla desde el detalle, como una que se sube a
   mano. Si se quiere automático, va después de `importFiles`.
 - **CEBAC**:
-  - bucket, IAM y pasaje a S3 (ver el runbook);
-  - activar las dos reglas y `MEDICAL_ORDER_PULL_ENABLED` cuando Healthbook
-    esté.
+  - bucket, IAM y pasaje a S3 (ver el runbook): la infra de bitra hoy tiene un
+    bucket de subidas propio (`bitra-cebac-uploads`) y el rol de la API no
+    lee el prefijo del LIS; hay que decidir bucket compartido con prefijos o
+    permisos cruzados entre los dos buckets;
+  - recrear el cliente de integración con los scopes `medical_orders.*`;
+  - activar las dos reglas y `MEDICAL_ORDER_PULL_ENABLED`.
 - **A validar con legales.** Los documentos clínicos de CEBAC pasan a un bucket
   en `sa-east-1` (São Paulo): es transferencia internacional de datos de salud
   (Ley 25.326).
