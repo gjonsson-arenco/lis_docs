@@ -5,7 +5,7 @@ Documentar como el backend obtiene precios de practicas, donde se registran conv
 
 ## Flujo end-to-end actual
 1. Entrada: `POST /api/v1/admission-valuations/quote`.
-2. Mapeo: estudios -> practicas base (tabla pivote `study_practice_type`).
+2. Mapeo: estudios -> practicas base (tabla pivote `study_practice_type`). La cobertura factura con el set de practicas que declara (o el set por defecto). Dentro del set, una practica puede estar condicionada a la orden (`practice_types.conditions`: tipo de paciente, origen, servicio, plan, particular; mismo DSL que el trigger de una regla, evaluado en PHP por `PracticeConditions`). Por estudio y set: la condicionada que se cumple pisa a la generica; sin ninguna que se cumpla, quedan las genericas. El import de practicas de un set puede escribir la misma condicion en todas las filas del archivo (asi se carga el nomenclador "de internados" de un financiador en el mismo set).
 3. Reglas de facturacion: `replace`, `add`, `suppress` por prioridad (tabla `billing_rules`).
 4. Consolidacion: merge de practicas repetidas (suma cantidad).
 5. Valorizacion:
