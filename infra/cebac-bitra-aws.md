@@ -371,7 +371,7 @@ Hay dos caminos:
   cuenta de Expo y da un link o QR para pasarles a los testers.
 
 **La firma.** El dev build de desarrollo usa el mismo package
-(`com.arenco.healthbook`) con otra firma, así que el APK no se instala encima.
+(`com.arenco.bitra`) con otra firma, así que el APK no se instala encima.
 Hay que desinstalar el de desarrollo o, para el test, compilar con un sufijo en
 el package para tener las dos apps a la vez.
 

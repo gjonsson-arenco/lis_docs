@@ -210,6 +210,26 @@ Ver `lis-healthbook-back/aws/cognito-auth/README.md`.
 - [ ] 💻 Sacar `messaging-service` del compose de `deploy/cebac` y escribir la
       nota de release.
 
+## La app única y la raíz bitra-care.com (decidido 2026-10-29)
+
+Una sola app en las tiendas para todos los laboratorios; cada uno en
+`<slug>.bitra-care.com`. Lo que falta de infra:
+
+- [ ] **Redeploy de `bitra-api`** con las variables `LAB_*` que ya están en
+      `api.yaml` (`deploy.sh api review|apply`): la app las lee de
+      `GET /public/app-config`.
+- [ ] **La raíz `bitra-care.com`:** un deploy más del contenedor `bitra-web`
+      con `NEXT_PUBLIC_BITRA_CLIENT` vacío y `NEXT_PUBLIC_LAB_DOMAIN=bitra-care.com`,
+      sin API detrás (la landing manda al portal de cada laboratorio). Sirve
+      la landing de bitra, `/privacidad` (la política genérica que va en las
+      fichas de App Store y Google Play), `/eliminar-cuenta` y `/labs.json`
+      (el directorio que lee la app: `apps/web/public/labs.json`). Alias de
+      DNS en el apex más CloudFront; el certificado del apex ya lo pide `base.yaml`.
+- [ ] **Sumar un laboratorio nuevo:** su stack con `<slug>.bitra-care.com`,
+      sus `LAB_*`, y una línea en `labs.json`. La app no cambia.
+- [ ] Links universales cuando haya cuenta de Apple (Team ID):
+      `apple-app-site-association` y `assetlinks.json` en cada web de cliente.
+
 ## Después
 
 - [ ] 👤 WhatsApp: el número y las plantillas en Meta, y decidir qué app usa
