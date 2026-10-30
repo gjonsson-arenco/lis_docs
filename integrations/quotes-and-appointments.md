@@ -362,6 +362,37 @@ de reglas (la valorización), el servicio de documentos en 3030 y el adapter
 en `http` contra un bitra con el cliente de integración; sin S3, el
 presupuesto llega sin PDF. Falta ese smoke y el APK nuevo.
 
+### Después del diseño: la orden es lo que empuja el circuito (2026-10-30)
+
+Decisiones del mismo día, sobre la app y el portal:
+
+- **La orden primero.** El inicio del paciente lleva un banner con el
+  siguiente paso del circuito: sin orden cargada, subirla ("el día de la
+  extracción te atendemos más rápido"); con una cargada y sin turno, pedirlo.
+  No se cierra: desaparece cuando el paso ya está dado. "Subir orden médica"
+  pasa a ser el botón principal y "Pedir turno" el secundario. El resumen de
+  la ficha (`/patients/{id}/overview`) suma `medical_orders.awaiting_appointment`.
+- **El presupuesto y las indicaciones no se piden.** Al subir la orden, la
+  app termina en una pantalla que dice qué pasa ahora (el laboratorio la
+  revisa; presupuesto e indicaciones llegan solos) y ofrece pedir turno con
+  esa orden; el portal abre el detalle de la orden recién subida.
+- **El turno pide la orden primero.** El flujo de turno arranca por la orden
+  (una cargada, una nueva, o "No tengo la orden ahora": el laboratorio la
+  pide en la sede); desde el detalle de una orden ese paso ya viene resuelto.
+  La opción "la llevo en papel" por defecto se retiró.
+- **Las indicaciones viajan con la orden.** El LIS manda `indications[]` en
+  el mismo `PUT` que el `quote` (`MedicalOrderIntegrationPayloadBuilder`,
+  resueltas por `MedicalOrderIndicationService` a partir de los estudios:
+  `code`, `name`, `description`, `studies[]`). bitra las guarda en
+  `medical_orders.indications`, las muestra en la orden ("Preparación") y en
+  el turno que la lleva, y el aviso `healthbook.quote_ready` las incluye:
+  un solo mensaje con presupuesto y preparación. Como se derivan de los
+  estudios, cada cambio del LIS las actualiza solo.
+
+Hecho en los seis repos ese día: lis-backend, lis-adapter-healthbook,
+bitra back, lis-messaging-service, bitra front (app y portal). Sigue
+faltando el smoke e2e y el APK nuevo.
+
 ## Orden de implementación
 
 1. **Presupuestos de punta a punta** (ítems 1, 5, 7, 10, 12, 13-parcial, 14).
