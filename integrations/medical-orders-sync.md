@@ -210,13 +210,16 @@ Los eventos los dispara `MedicalOrderService` después del commit (listeners
 - `documents:copy-to-disk`, para pasar los documentos de local a S3.
 - El listado de órdenes médicas filtra por `origin` y devuelve `origin` y
   `uuid`.
-- **Análisis al importar (2026-10-30).** Ya importada, `MedicalOrderAnalyzer`
-  lee la primera página con OCR/IA y vuelca los estudios detectados
-  (`applyAnalysis`, que conserva los cargados a mano). Corre dentro del pull,
-  fuera de la transacción, y nunca frena la importación: si falla queda en
-  el log y la orden se analiza desde el detalle. Flag
+- **Análisis al importar (2026-10-30).** Ya importada, el importador encola
+  `AnalyzeMedicalOrder`, que en el **worker de colas** (`lis-worker` en el
+  compose de CEBAC, driver `database`) lee la primera página con OCR/IA y
+  vuelca los estudios detectados (`applyAnalysis`, que conserva los cargados a
+  mano). El pull no espera: Textract más el matcher tardan entre 10 y 60 s por
+  receta. La orden lleva `analysis_status` (`pending`, `done`, `failed`): la
+  lista dice "Analizando…" o "Sin leer" en vez de mostrarla vacía; tras tres
+  intentos fallidos queda `failed` y se analiza desde el detalle. Flag
   `MEDICAL_ORDER_PULL_ANALYZE` (prendido por defecto; apagarlo donde no haya
-  Textract ni matcher). En el front, el detalle de la orden tiene "Analizar
+  Textract ni matcher). La foto de la fila virtual también va por esa cola. En el front, el detalle de la orden tiene "Analizar
   con IA" / "Revisar y aplicar" / "Volver a analizar" sobre la imagen
   adjunta, y la pestaña Estudios se edita a mano (agregar y quitar) con
   `PUT /medical-orders/{id}/studies`.
