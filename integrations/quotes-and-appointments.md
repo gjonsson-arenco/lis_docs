@@ -326,6 +326,42 @@ lunes a viernes) y tests. El feed se traduce a la forma canónica
 16. Tarjeta Turnos en Configuración > Sistema (habilitada, franja, horarios por
     día con cupo, cierres).
 
+## Qué está hecho (2026-10-30): la fase 1, presupuestos de punta a punta
+
+Commiteado en `main` de cada repo el mismo día del diseño:
+
+- **LIS backend** (`09bea07`): `MedicalOrderQuoteService::quote()` genera el
+  PDF con el servicio de documentos (documento del paciente de tipo `quote`,
+  colgado del presupuesto por `medical_order_quotes.document_id`) y dispara
+  `MedicalOrderUpdated`; `MedicalOrderQuoteSummary` arma el objeto `quote`
+  del payload (null si el último está `blocked`); `GET /medical-orders`
+  acepta `has_quote`; `GET /medical-orders/{id}/quotes/{quote}/pdf` baja el
+  PDF guardado o lo dibuja en el momento. Config en
+  `documents.medical_order_quote`.
+- **Servicio de documentos** (`3bb3cf3`): plantilla
+  `customers/cebac/medical-order-quote/v1`, A4.
+- **Adapter** (`7ef66a5`): `quote` pasa en el `PUT /medical-orders/{uuid}`
+  con la forma verificada; el PDF sólo si está en S3.
+- **bitra back** (`52f6ff7`, `61a3478`): tabla `medical_order_quotes`
+  (upsert por `external_id`, historial), copia del PDF a `quotes/`, aviso
+  `healthbook.quote_ready` al paciente, `quote`/`quotes` en
+  `MedicalOrderResource`, `GET /medical-orders/{id}/quotes/{quote}/pdf`.
+  `features.quotes` dejó de anunciarse. Las rutas y el modelo `QuoteRequest`
+  siguen en el código hasta la limpieza.
+- **Mensajería** (`24ab513`): `healthbook.quote_ready` en el catálogo, con
+  su mail. Los avisos de turnos quedan para la fase 2.
+- **bitra front** (`6c13cca`): detalle de la orden médica en la app y en el
+  portal con la tarjeta del presupuesto y el PDF, "Pedir turno con esta
+  orden"; retirados el pedido de presupuesto, sus pantallas y la bandeja del
+  admin.
+- **LIS front** (`baeae82`): filtro "Sin presupuesto" en Órdenes médicas y
+  botón de PDF en la tarjeta y en el diálogo.
+
+Para probarlo de punta a punta hace falta el LIS con el matcher y el motor
+de reglas (la valorización), el servicio de documentos en 3030 y el adapter
+en `http` contra un bitra con el cliente de integración; sin S3, el
+presupuesto llega sin PDF. Falta ese smoke y el APK nuevo.
+
 ## Orden de implementación
 
 1. **Presupuestos de punta a punta** (ítems 1, 5, 7, 10, 12, 13-parcial, 14).
