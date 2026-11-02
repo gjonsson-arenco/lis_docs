@@ -15,8 +15,13 @@ en la consola; el resto se corre por CLI con el perfil `bitra-cebac`.
 - [x] `aws sts get-caller-identity --profile bitra-cebac`: es la cuenta del RDS
       y del bucket (340482984767).
 
-- [x] El RDS: `healthbook-test`, la copia de producción (base `ebdb`). La
-      contraseña está en `/bitra/cebac/api/db-password`.
+- [x] El RDS: desde el 2026-11-02 es `bitra-cebac-db`, restore del snapshot
+      `healthbook-cebac-prod-bitra-20261102` de la producción de v1 (que desde
+      el 2026-10-29 corre en ECS sobre `healthbook-cebac-prod`, no en Elastic
+      Beanstalk). Es privada: sólo entran las tasks de bitra (security group
+      `bitra-cebac-db`); todo se corre como task de una sola corrida. La
+      contraseña está en `/bitra/cebac/api/db-password`. `healthbook-test` (la
+      copia del 2026-10-07) sólo conserva `lis_messaging`.
 - [x] Cognito: un pool nuevo, `cebac.bitra-care.com` (se crea en la fase 1).
 - [x] DNS: la zona `bitra-care.com` está en Route 53 y delegada.
 - [x] Las subidas van a un bucket propio, `bitra-cebac-uploads` (stack
@@ -95,16 +100,20 @@ Hecho con las plantillas de `lis-infra/aws/bitra-cebac/` (rama `deploy/cebac`):
       [bitra-api](./cebac-bitra-aws.md#bitra-api).
 - [x] **Migraciones:** `migrate:status` en una task de una sola corrida: no
       hay nada pendiente (la copia ya tiene el esquema de v2).
-- [ ] **Cuentas de prueba en el pool nuevo:**
+- [x] **Cuentas de prueba en el pool nuevo:**
       `php artisan identity:provision-legacy --user=…` con unos pocos
       pacientes, no con todos.
-- [ ] **Limpieza de usuarios no verificados (corte):**
+- [x] **Limpieza de usuarios no verificados (corte):** ensayado el
+      2026-11-02 sobre `bitra-cebac-db`: 45.227 cuentas en 94 s.
       `php artisan users:purge-unverified --dry-run` y después sin `--dry-run`,
       sobre la copia definitiva. Borra los pacientes sin canal verificado con
       sus vínculos a fichas; criterio `User::hasVerified` (cuenta el registro
       por WhatsApp de v1). Antes, borrarles el `cognito_sub` del pool viejo a
       los 11 usuarios de prueba.
-- [ ] **Alta silenciosa de los registrados (corte):**
+- [ ] **Alta silenciosa de los registrados (corte):** ensayo del 2026-11-02
+      sobre `bitra-cebac-db`: 51.941 cuentas a ~0,7 s cada una, unas 10 horas
+      en una sola task. Antes del corte real hay que poder correrlo en
+      paralelo (por rangos de id) o aceptar la ventana.
       `php artisan identity:provision-legacy --dry-run` y después completo, en
       una task de ECS (decenas de miles de llamadas a Cognito). Resolver a
       mano los `AliasExistsException` (contacto repetido entre usuarios) que
@@ -170,9 +179,10 @@ Ver `lis-healthbook-back/aws/cognito-auth/README.md`.
 
 ## 7. El LIS de CEBAC hacia bitra
 
-- [ ] Crear el cliente de integración:
-      `php artisan integration:client-create lis-adapter-healthbook arenco`
-      (como task de una sola corrida).
+- [x] Crear el cliente de integración:
+      `php artisan integration:client-create lis-cebac arenco --ip=<IP de CEBAC>`
+      (como task de una sola corrida). Hecho el 2026-11-02 sobre
+      `bitra-cebac-db` (cliente #1); el token cambia cada vez que cambia la base.
 - [ ] En `lis-infra/.env` de CEBAC: `HEALTHBOOK_MODE=http`,
       `HEALTHBOOK_API_URL=https://api.cebac.bitra-care.com` y
       `HEALTHBOOK_API_TOKEN=…`. Después, `up -d adapter-healthbook`.
