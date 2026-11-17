@@ -1,0 +1,20 @@
+Pruebas de integración LIS (CEBAC) ↔ ConSalud en Casa - 2026-11-17T16:59:21.846Z
+Afiliado de prueba: DNI 40173783. Base: https://encasa.consalud.com.ar.
+Cada archivo tiene el pedido y la respuesta JSON de cada llamada, tal como viajaron (sin credenciales ni tokens), y cómo lo interpretó el LIS.
+
+01. Lista de solicitantes: HTTP 200
+02. Validación del afiliado: HTTP 200
+03. Verificar códigos: HTTP 200
+04. Autorizar códigos: HTTP 200
+05. Confirmar atención sin token: HTTP 422
+06. Confirmar atención con un token inválido: HTTP 422
+07. Anular orden: HTTP 200
+08. Anular orden por segunda vez: HTTP 200
+09. Traer autorizaciones: HTTP 200
+
+Observaciones
+- Autorizar creó la orden CSB-119509 (prefijo CSB en producción; la guía ejemplifica con VC) y quedó anulada en el paso 07.
+- El cuit_solicitante salió del primer elemento de la lista de solicitantes, que se llama "-NO USAR-CIBILS MANUEL ANDRES". La API lo aceptó igual; convendría que ese registro no venga en la lista o que autorizar lo rechace.
+- Verificar devuelve en "codigos" el 660001 (ACTO BIOQUÍMICO) aunque no se lo mandemos: ¿lo agrega ConSalud a toda orden?
+- Confirmar sin token responde 422 "El token es requerido" y con un token inválido 422 "Token incorrecto". No tenemos el token real del afiliado, así que la confirmación exitosa quedó sin probar.
+- Traer autorizaciones muestra sólo la autorización VC-350 en "Requiere revisión"; la orden CSB-119509 (creada y anulada por API) no aparece.

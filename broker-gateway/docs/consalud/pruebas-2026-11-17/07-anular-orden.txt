@@ -1,0 +1,40 @@
+ConSalud en Casa - Anular orden - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+Anulación de la orden de prueba creada en el paso de autorizar.
+
+Enviado: 2026-11-17T16:59:18.558Z  (POST https://encasa.consalud.com.ar/api/ordenes/anular)
+Respuesta HTTP 200 a las 2026-11-17T16:59:20.053Z  (1495 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "prefijo": "CSB",
+  "numero_orden": "119509"
+}
+
+===== RESPUESTA (body JSON) =====
+[
+  {
+    "resultado": "ok"
+  }
+]
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-6",
+  "traceId": "p-6",
+  "broker": "consalud",
+  "cancelStatus": "approved",
+  "brokerReferenceId": "CSB-119509",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

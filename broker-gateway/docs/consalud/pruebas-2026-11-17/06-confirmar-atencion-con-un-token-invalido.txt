@@ -1,0 +1,46 @@
+ConSalud en Casa - Confirmar atención con un token inválido - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+Token 00000000, a propósito inválido, para ver cómo responde la API. No tenemos el token real del afiliado.
+
+Enviado: 2026-11-17T16:59:17.349Z  (POST https://encasa.consalud.com.ar/api/ordenes/confirmar)
+Respuesta HTTP 422 a las 2026-11-17T16:59:18.553Z  (1204 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "prefijo": "CSB",
+  "numero_orden": "119509",
+  "token": "***"
+}
+
+===== RESPUESTA (body JSON) =====
+{
+  "mensaje": "Token incorrecto"
+}
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-5",
+  "traceId": "p-5",
+  "broker": "consalud",
+  "confirmStatus": "requires_member_verification",
+  "rejection": {
+    "code": "REQUIRES_TOKEN",
+    "message": "Token incorrecto",
+    "brokerCode": 0,
+    "brokerMessage": "Token incorrecto",
+    "level": "header"
+  },
+  "brokerReferenceId": "CSB-119509",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

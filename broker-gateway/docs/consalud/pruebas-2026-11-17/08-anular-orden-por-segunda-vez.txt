@@ -1,0 +1,47 @@
+ConSalud en Casa - Anular orden por segunda vez - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+Misma orden otra vez, para ver el mensaje de una orden ya anulada.
+
+Enviado: 2026-11-17T16:59:20.056Z  (POST https://encasa.consalud.com.ar/api/ordenes/anular)
+Respuesta HTTP 200 a las 2026-11-17T16:59:20.951Z  (895 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "prefijo": "CSB",
+  "numero_orden": "119509"
+}
+
+===== RESPUESTA (body JSON) =====
+[
+  {
+    "resultado": "No se pudo anular. Anulada anteriormente"
+  }
+]
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-7",
+  "traceId": "p-7",
+  "broker": "consalud",
+  "cancelStatus": "rejected",
+  "rejection": {
+    "code": "GENERIC_ERROR",
+    "message": "No se pudo anular. Anulada anteriormente",
+    "brokerCode": 0,
+    "brokerMessage": "No se pudo anular. Anulada anteriormente",
+    "level": "header"
+  },
+  "brokerReferenceId": "CSB-119509",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

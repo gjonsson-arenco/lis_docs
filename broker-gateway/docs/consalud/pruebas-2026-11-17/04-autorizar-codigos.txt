@@ -1,0 +1,73 @@
+ConSalud en Casa - Autorizar códigos - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+cuit_solicitante tomado de la lista de solicitantes (-NO USAR-CIBILS MANUEL ANDRES). Orden de prueba: se anula al final.
+
+Enviado: 2026-11-17T16:59:12.283Z  (POST https://encasa.consalud.com.ar/api/codigos/autorizar)
+Respuesta HTTP 200 a las 2026-11-17T16:59:16.105Z  (3822 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "dni": "40173783",
+  "codigos": [
+    {
+      "codigo": "660711",
+      "cantidad": 1
+    },
+    {
+      "codigo": "660412",
+      "cantidad": 1
+    }
+  ],
+  "cuit_solicitante": "20186761406",
+  "observaciones": "Prueba de integración LIS CEBAC. Orden de prueba, se anula a continuación."
+}
+
+===== RESPUESTA (body JSON) =====
+{
+  "mensaje": "ok",
+  "prefijo": "CSB",
+  "numero_orden": 119509
+}
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-3",
+  "traceId": "p-3",
+  "broker": "consalud",
+  "transactionStatus": "approved",
+  "lineItems": [
+    {
+      "transactionId": 119509,
+      "quantity": 1,
+      "itemIndex": 0,
+      "practiceCode": "660711",
+      "itemMatch": "exact",
+      "status": "approved"
+    },
+    {
+      "transactionId": 119509,
+      "quantity": 1,
+      "itemIndex": 1,
+      "practiceCode": "660412",
+      "itemMatch": "exact",
+      "status": "approved"
+    }
+  ],
+  "brokerTransactionNumbers": [
+    "CSB-119509"
+  ],
+  "registrationMode": "batch",
+  "brokerReferenceId": "CSB-119509",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

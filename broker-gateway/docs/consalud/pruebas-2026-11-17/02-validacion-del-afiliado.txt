@@ -1,0 +1,50 @@
+ConSalud en Casa - Validación del afiliado - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+
+Enviado: 2026-11-17T16:59:09.774Z  (POST https://encasa.consalud.com.ar/api/afiliacion/validar)
+Respuesta HTTP 200 a las 2026-11-17T16:59:10.627Z  (853 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "tipoDocumento": "DNI",
+  "numeroDocumento": "40173783"
+}
+
+===== RESPUESTA (body JSON) =====
+[
+  {
+    "accede": "1",
+    "documento": "DNI - 40173783",
+    "numero_afiliado": "40173783",
+    "secuencia": "0",
+    "nombre_completo": "CARUSO ALEJANDRO RENE         ",
+    "fecha_nacimiento": "1997-01-29",
+    "convenio_vigente": "30   - Prestadores Sanatoriales S.A.",
+    "plan_vigente": "0125 - PSSA 0125                     ",
+    "premium": false
+  }
+]
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-1",
+  "traceId": "p-1",
+  "broker": "consalud",
+  "eligible": true,
+  "affiliateStatus": "active",
+  "message": "CARUSO ALEJANDRO RENE · plan 0125 - PSSA 0125",
+  "memberTokenRequired": true,
+  "brokerReferenceId": "40173783/0",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

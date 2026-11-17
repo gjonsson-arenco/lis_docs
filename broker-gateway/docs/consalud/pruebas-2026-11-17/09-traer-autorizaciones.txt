@@ -1,0 +1,59 @@
+ConSalud en Casa - Traer autorizaciones - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+Estado final de las autorizaciones del afiliado de prueba (POST /api/autorizaciones, llamado directo, sólo lectura).
+
+Enviado: 2026-11-17T16:59:20.956Z  (POST https://encasa.consalud.com.ar/api/autorizaciones)
+Respuesta HTTP 200 a las 2026-11-17T16:59:21.845Z  (889 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "dni": "40173783"
+}
+
+===== RESPUESTA (body JSON) =====
+[
+  {
+    "prefijo": "VC",
+    "numero_orden": null,
+    "numero_autorizacion": 350,
+    "estado": "Requiere revisión",
+    "codigos": [
+      {
+        "codigo": "660006",
+        "descripcion": "ACTH - HORMONA ADRENOCORTICOTROFINA."
+      },
+      {
+        "codigo": "660002",
+        "descripcion": "ACETONURIA."
+      },
+      {
+        "codigo": "660001",
+        "descripcion": "ACTO BIOQUÍMICO"
+      }
+    ]
+  }
+]
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+[
+  {
+    "prefijo": "VC",
+    "numero_orden": null,
+    "numero_autorizacion": 350,
+    "estado": "Requiere revisión",
+    "codigos": [
+      {
+        "codigo": "660006",
+        "descripcion": "ACTH - HORMONA ADRENOCORTICOTROFINA."
+      },
+      {
+        "codigo": "660002",
+        "descripcion": "ACETONURIA."
+      },
+      {
+        "codigo": "660001",
+        "descripcion": "ACTO BIOQUÍMICO"
+      }
+    ]
+  }
+]

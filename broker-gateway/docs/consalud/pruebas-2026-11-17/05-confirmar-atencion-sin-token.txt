@@ -1,0 +1,45 @@
+ConSalud en Casa - Confirmar atención sin token - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+El afiliado de prueba no es premium: se espera el 422 "El token es requerido".
+
+Enviado: 2026-11-17T16:59:16.109Z  (POST https://encasa.consalud.com.ar/api/ordenes/confirmar)
+Respuesta HTTP 422 a las 2026-11-17T16:59:17.337Z  (1228 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "prefijo": "CSB",
+  "numero_orden": "119509"
+}
+
+===== RESPUESTA (body JSON) =====
+{
+  "mensaje": "El token es requerido"
+}
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-4",
+  "traceId": "p-4",
+  "broker": "consalud",
+  "confirmStatus": "requires_member_verification",
+  "rejection": {
+    "code": "REQUIRES_TOKEN",
+    "message": "El token es requerido",
+    "brokerCode": 0,
+    "brokerMessage": "El token es requerido",
+    "level": "header"
+  },
+  "brokerReferenceId": "CSB-119509",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

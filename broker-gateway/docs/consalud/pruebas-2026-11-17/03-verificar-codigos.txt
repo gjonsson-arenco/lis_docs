@@ -1,0 +1,89 @@
+ConSalud en Casa - Verificar códigos - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+Pre-chequeo del pedido antes de autorizarlo. No crea nada.
+
+Enviado: 2026-11-17T16:59:10.631Z  (POST https://encasa.consalud.com.ar/api/codigos/verificar)
+Respuesta HTTP 200 a las 2026-11-17T16:59:12.218Z  (1587 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "dni": "40173783",
+  "codigos": [
+    {
+      "codigo": "660711",
+      "cantidad": 1
+    },
+    {
+      "codigo": "660412",
+      "cantidad": 1
+    }
+  ]
+}
+
+===== RESPUESTA (body JSON) =====
+{
+  "autorizado": 1,
+  "respuesta": "ok",
+  "coseguro": 0,
+  "codigos": [
+    {
+      "codigo": "660001",
+      "bloqueado": 0,
+      "prohibido": 0,
+      "auditable": 0
+    },
+    {
+      "codigo": "660412",
+      "bloqueado": 0,
+      "prohibido": 0,
+      "auditable": 0
+    },
+    {
+      "codigo": "660711",
+      "bloqueado": 0,
+      "prohibido": 0,
+      "auditable": 0
+    }
+  ]
+}
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+{
+  "requestId": "p-2",
+  "traceId": "p-2",
+  "broker": "consalud",
+  "transactionStatus": "approved",
+  "lineItems": [
+    {
+      "transactionId": 0,
+      "quantity": 1,
+      "itemIndex": 0,
+      "practiceCode": "660711",
+      "itemMatch": "exact",
+      "status": "approved"
+    },
+    {
+      "transactionId": 0,
+      "quantity": 1,
+      "itemIndex": 1,
+      "practiceCode": "660412",
+      "itemMatch": "exact",
+      "status": "approved"
+    }
+  ],
+  "patientAmountTotal": 0,
+  "registrationMode": "batch",
+  "brokerReferenceId": "40173783",
+  "brokerMetadata": {
+    "name": "consalud",
+    "version": "2.0.0",
+    "environment": "production",
+    "capabilities": [
+      "eligibility",
+      "authorization",
+      "transaction",
+      "cancellation",
+      "confirmation"
+    ]
+  }
+}

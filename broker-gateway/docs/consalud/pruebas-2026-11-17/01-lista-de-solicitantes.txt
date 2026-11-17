@@ -1,0 +1,113 @@
+ConSalud en Casa - Lista de solicitantes - producción
+Prueba de integración LIS (CEBAC) del 2026-11-17. Afiliado de prueba: DNI 40173783.
+GET /api/solicitantes para elegir el CUIT que va en cuit_solicitante.
+
+Enviado: 2026-11-17T16:59:07.600Z  (POST https://encasa.consalud.com.ar/api/auth/signin)
+Respuesta HTTP 200 a las 2026-11-17T16:59:08.747Z  (1147 ms)
+
+===== PEDIDO (body JSON) =====
+{
+  "user": "cebac",
+  "password": "***"
+}
+
+===== RESPUESTA (body JSON) =====
+{
+  "accessToken": "***"
+}
+
+Enviado: 2026-11-17T16:59:08.749Z  (GET https://encasa.consalud.com.ar/api/solicitantes)
+Respuesta HTTP 200 a las 2026-11-17T16:59:09.766Z  (1017 ms)
+
+===== PEDIDO (body JSON) =====
+(sin cuerpo)
+
+===== RESPUESTA (body JSON) =====
+(lista recortada a los primeros 10 de 1086 solicitantes para que el archivo sea legible)
+[
+  {
+    "nombre": "-NO USAR-CIBILS MANUEL ANDRES",
+    "cuit": "20186761406"
+  },
+  {
+    "nombre": "-no usar-PEROÑA GIULIANA MARYLEN (GUARDIA BORATTI)",
+    "cuit": "27360183853"
+  },
+  {
+    "nombre": "ABBATE MIGUEL ANGEL",
+    "cuit": "20123951280"
+  },
+  {
+    "nombre": "ABDULHADI ALBERTO",
+    "cuit": "20055352012"
+  },
+  {
+    "nombre": "ABRAHAM FERNANDO JOSE (H)",
+    "cuit": "20119411948"
+  },
+  {
+    "nombre": "ACEVEDO RICARDO RAMON",
+    "cuit": "23210763899"
+  },
+  {
+    "nombre": "ACOSTA MANUEL JOSE MARIA",
+    "cuit": "20074800492"
+  },
+  {
+    "nombre": "ACOSTA MARIO EMIR",
+    "cuit": "20324894560"
+  },
+  {
+    "nombre": "ACOSTA MILTON DARIO",
+    "cuit": "23203384599"
+  },
+  {
+    "nombre": "ACUÑA CINTIA SOLEDAD",
+    "cuit": "27323956737"
+  }
+]
+
+===== CÓMO LO INTERPRETÓ EL LIS =====
+(lista recortada a los primeros 10 de 1086 solicitantes para que el archivo sea legible)
+[
+  {
+    "nombre": "-NO USAR-CIBILS MANUEL ANDRES",
+    "cuit": "20186761406"
+  },
+  {
+    "nombre": "-no usar-PEROÑA GIULIANA MARYLEN (GUARDIA BORATTI)",
+    "cuit": "27360183853"
+  },
+  {
+    "nombre": "ABBATE MIGUEL ANGEL",
+    "cuit": "20123951280"
+  },
+  {
+    "nombre": "ABDULHADI ALBERTO",
+    "cuit": "20055352012"
+  },
+  {
+    "nombre": "ABRAHAM FERNANDO JOSE (H)",
+    "cuit": "20119411948"
+  },
+  {
+    "nombre": "ACEVEDO RICARDO RAMON",
+    "cuit": "23210763899"
+  },
+  {
+    "nombre": "ACOSTA MANUEL JOSE MARIA",
+    "cuit": "20074800492"
+  },
+  {
+    "nombre": "ACOSTA MARIO EMIR",
+    "cuit": "20324894560"
+  },
+  {
+    "nombre": "ACOSTA MILTON DARIO",
+    "cuit": "23203384599"
+  },
+  {
+    "nombre": "ACUÑA CINTIA SOLEDAD",
+    "cuit": "27323956737"
+  }
+]
