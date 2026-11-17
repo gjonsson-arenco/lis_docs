@@ -1,0 +1,133 @@
+ITC / NUVALID - Transaccion 04A - ambiente de testing
+Enviado: 2026-11-17T16:18:19.579Z  (POST https://tx.testing.blue.puntosalud.ar/sitel2/tx/32db…f704)
+Respuesta HTTP 200 a las 2026-11-17T16:18:25.861Z  (6282 ms)
+CodRtaGeneral: 099  MensajeDisplay: ERROR. CONEXION CON OSDE INTERRUMPIDA.  INTENTE NUEVAMENTE.
+
+===== PEDIDO (campo 'mensaje' del multipart) =====
+<Mensaje>
+  <EncabezadoMensaje>
+    <VersionMsj>2.0</VersionMsj>
+    <NroReferenciaCancel>420298228</NroReferenciaCancel>
+    <FechaReferenciaCancel>20261117</FechaReferenciaCancel>
+    <TipoTransaccion>04A</TipoTransaccion>
+    <IdMsj>0226337535</IdMsj>
+    <InicioTrx>
+      <FechaTrx>20261117</FechaTrx>
+      <HoraTrx>161819</HoraTrx>
+    </InicioTrx>
+    <Terminal>
+      <TipoTerminal>PC</TipoTerminal>
+      <NumeroTerminal>1</NumeroTerminal>
+    </Terminal>
+    <Software>
+      <NombreSoftware>Ankra lis</NombreSoftware>
+      <VersionSoftware>1.0.0</VersionSoftware>
+    </Software>
+    <Financiador>
+      <CodigoFinanciador>11</CodigoFinanciador>
+      <CuitFinanciador>30546741253</CuitFinanciador>
+    </Financiador>
+    <Prestador>
+      <CuitPrestador>30708402911</CuitPrestador>
+      <SucursalPrestador>0</SucursalPrestador>
+    </Prestador>
+  </EncabezadoMensaje>
+  <EncabezadoAtencion>
+    <Efector/>
+    <Prescriptor/>
+    <Credencial>
+      <NumeroCredencial>60671956201</NumeroCredencial>
+    </Credencial>
+    <Atencion>
+      <FechaAtencion>20261117</FechaAtencion>
+    </Atencion>
+  </EncabezadoAtencion>
+</Mensaje>
+
+===== RESPUESTA (cuerpo tal cual lo devolvio ITC) =====
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Mensaje >
+  <EncabezadoMensaje>
+    <VersionMsj>2.0</VersionMsj>
+    <Rta>
+      <CodRtaGeneral>099</CodRtaGeneral>
+      <MensajeDisplay>ERROR. CONEXION CON OSDE INTERRUMPIDA.  INTENTE NUEVAMENTE.</MensajeDisplay>
+      <MensajePrinter>                 OSDE                 
+  Organizacion de Servicios Directos  
+             Empresarios              
+--------------------------------------
+          INFORMAR ANULACION          
+--------------------------------------
+      !!!SOLICITUD RECHAZADA!!!       
+Nro.Transaccion  : 92-298230          
+--------------------------------------
+Prestador: SANATORIO DE PRUEBA PRUNE  
+CUIT     : 30708402911                
+Nro.Terminal: 1388                    
+--------------------------------------
+Afiliado : 60671956201                
+Nro.Plan:        Cond.IVA:            
+Cobertura:                            
+Fecha de Atencion: 17/11/2026         
+--------------------------------------
+                                      
+ERROR. CONEXION CON OSDE INTERRUMPIDA.
+  INTENTE NUEVAMENTE.                 
+                                      
+(099)                                 
+--------------------------------------
+   17/11/2026 13:18 PuntoSalud.com    
+</MensajePrinter>
+      <CodigoBarras>20261117IT298230</CodigoBarras>
+      <CodigoQR>IT42029820261117</CodigoQR>
+    </Rta>
+    <GeneradorRespuesta>30699630450</GeneradorRespuesta>
+    <NroReferencia>420298230</NroReferencia>
+    <NroReferenciaCancel>420298228</NroReferenciaCancel>
+    <TipoTransaccion>04A</TipoTransaccion>
+    <IdMsj>0226337535</IdMsj>
+    <InicioTrx>
+      <FechaTrx>20261117</FechaTrx>
+      <HoraTrx>131819</HoraTrx>
+    </InicioTrx>
+    <Terminal>
+      <TipoTerminal>PC</TipoTerminal>
+      <NumeroTerminal>1</NumeroTerminal>
+    </Terminal>
+    <Software>
+      <NombreSoftware>Ankra lis</NombreSoftware>
+      <VersionSoftware>1.0.0</VersionSoftware>
+    </Software>
+    <Financiador>
+      <CodigoFinanciador>11</CodigoFinanciador>
+      <CuitFinanciador>30546741253</CuitFinanciador>
+    </Financiador>
+    <Prestador>
+      <CuitPrestador>30708402911</CuitPrestador>
+      <SucursalPrestador>0</SucursalPrestador>
+      <RazonSocial>SANATORIO DE PRUEBA PRUNE</RazonSocial>
+    </Prestador>
+  </EncabezadoMensaje>
+  <EncabezadoAtencion>
+    <Efector />
+    <Prescriptor>
+      <ProvinciaPrescriptor />
+      <TipoPrescriptor />
+    </Prescriptor>
+    <Beneficiario>
+      <ApellidoBeneficiario />
+      <NombreBeneficiario />
+      <Sexo> </Sexo>
+      <FechaNacimiento>00000000</FechaNacimiento>
+    </Beneficiario>
+    <Credencial>
+      <NumeroCredencial>60671956201</NumeroCredencial>
+      <PlanCredencial />
+      <CondicionIVA>N</CondicionIVA>
+    </Credencial>
+    <CoberturaEspecial />
+    <Atencion>
+      <FechaAtencion>20261117</FechaAtencion>
+    </Atencion>
+  </EncabezadoAtencion>
+</Mensaje>
