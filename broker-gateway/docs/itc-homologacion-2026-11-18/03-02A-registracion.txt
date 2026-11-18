@@ -1,0 +1,228 @@
+ITC / NUVALID - Transaccion 02A - ambiente de testing
+Enviado: 2026-11-18T13:55:21.217Z  (POST https://tx.testing.blue.puntosalud.ar/sitel2/tx/32db…f704)
+Respuesta HTTP 200 a las 2026-11-18T13:55:27.895Z  (6678 ms)
+CodRtaGeneral: 000  MensajeDisplay: OK TRANSACCION REGISTRADA PLAN A CONFIRMAR. COBERTURA CX NO GRAVADO
+
+===== PEDIDO (campo 'mensaje' del multipart) =====
+<Mensaje>
+  <EncabezadoMensaje>
+    <VersionMsj>2.0</VersionMsj>
+    <TipoTransaccion>02A</TipoTransaccion>
+    <IdMsj>0479299238</IdMsj>
+    <InicioTrx>
+      <FechaTrx>20261118</FechaTrx>
+      <HoraTrx>105521</HoraTrx>
+    </InicioTrx>
+    <Terminal>
+      <TipoTerminal>PC</TipoTerminal>
+      <NumeroTerminal>1</NumeroTerminal>
+    </Terminal>
+    <Software>
+      <NombreSoftware>Ankra lis</NombreSoftware>
+      <VersionSoftware>1.0.0</VersionSoftware>
+    </Software>
+    <Financiador>
+      <CodigoFinanciador>11</CodigoFinanciador>
+      <CuitFinanciador>30546741253</CuitFinanciador>
+    </Financiador>
+    <Prestador>
+      <CuitPrestador>30708402911</CuitPrestador>
+      <SucursalPrestador>0</SucursalPrestador>
+    </Prestador>
+  </EncabezadoMensaje>
+  <EncabezadoAtencion>
+    <Efector>
+      <ApellidoEfector>PRUEBA</ApellidoEfector>
+      <NombreEfector>KINESIOLOGO</NombreEfector>
+      <ProvinciaEfector>B</ProvinciaEfector>
+      <TipoMatriculaEfector>M</TipoMatriculaEfector>
+      <NroMatriculaEfector>1234</NroMatriculaEfector>
+      <EspecialidadEfector>343</EspecialidadEfector>
+    </Efector>
+    <Prescriptor>
+      <FechaReceta>20261118</FechaReceta>
+      <ProvinciaPrescriptor>N</ProvinciaPrescriptor>
+      <TipoPrescriptor>M</TipoPrescriptor>
+      <NroMatriculaPrescriptor>7027</NroMatriculaPrescriptor>
+    </Prescriptor>
+    <Credencial>
+      <NumeroCredencial>60671956201</NumeroCredencial>
+      <VersionCredencial>218</VersionCredencial>
+      <ModoIngreso>M</ModoIngreso>
+    </Credencial>
+    <Atencion>
+      <FechaAtencion>20261118</FechaAtencion>
+      <HoraAtencion>105521</HoraAtencion>
+    </Atencion>
+    <Diagnostico/>
+  </EncabezadoAtencion>
+  <DetalleProcedimientos>
+    <NroItem>1</NroItem>
+    <CodPrestacion>660475</CodPrestacion>
+    <TipoPrestacion>1</TipoPrestacion>
+    <ArancelPrestacion>0</ArancelPrestacion>
+    <CantidadSolicitada>1</CantidadSolicitada>
+  </DetalleProcedimientos>
+  <DetalleProcedimientos>
+    <NroItem>2</NroItem>
+    <CodPrestacion>660001</CodPrestacion>
+    <TipoPrestacion>1</TipoPrestacion>
+    <ArancelPrestacion>0</ArancelPrestacion>
+    <CantidadSolicitada>1</CantidadSolicitada>
+  </DetalleProcedimientos>
+</Mensaje>
+
+===== RESPUESTA (cuerpo tal cual lo devolvio ITC) =====
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Mensaje >
+  <EncabezadoMensaje>
+    <VersionMsj>2.0</VersionMsj>
+    <Rta>
+      <CodRtaGeneral>000</CodRtaGeneral>
+      <MensajeDisplay>OK TRANSACCION REGISTRADA PLAN A CONFIRMAR. COBERTURA CX NO GRAVADO</MensajeDisplay>
+      <MensajePrinter>                 OSDE                 
+  Organizacion de Servicios Directos  
+             Empresarios              
+--------------------------------------
+         INFORMAR PRESTACION          
+--------------------------------------
+Nro.Referencia  : 92                  
+Nro. Transaccion: 298249              
+--------------------------------------
+Prestador: SANATORIO DE PRUEBA PRUNE  
+CUIT     : 30708402911                
+Nro.Terminal: 1388                    
+--------------------------------------
+Afiliado : 60671956201                
+Nro.Plan:        Cond.IVA: No grav.   
+Cobertura: CX                         
+Medico Prescriptor: MC 007027         
+Fecha de Atencion: 18/11/2026         
+--------------------------------------
+Prestacion.Tipo.Arancel.Cant.Observ   
+--------------------------------------
+660475     1    0         1           
+660001     1    0         1           
+                                      
+OK TRANSACCION REGISTRADA PLAN A CONFI
+RMAR. COBERTURA CX NO GRAVADO         
+                                      
+--------------------------------------
+                                      
+Firma:................................
+Aclaracion:...........................
+Tipo y Nro Doc.:......................
+--------------------------------------
+   18/11/2026 10:55 PuntoSalud.com    
+</MensajePrinter>
+      <CodigoBarras>20261118IT298249</CodigoBarras>
+      <CodigoQR>IT42029820261118</CodigoQR>
+    </Rta>
+    <GeneradorRespuesta>30699630450</GeneradorRespuesta>
+    <NroReferencia>420298249</NroReferencia>
+    <TipoTransaccion>02A</TipoTransaccion>
+    <IdMsj>0479299238</IdMsj>
+    <InicioTrx>
+      <FechaTrx>20261118</FechaTrx>
+      <HoraTrx>105521</HoraTrx>
+    </InicioTrx>
+    <Terminal>
+      <TipoTerminal>PC</TipoTerminal>
+      <NumeroTerminal>1</NumeroTerminal>
+    </Terminal>
+    <Software>
+      <NombreSoftware>Ankra lis</NombreSoftware>
+      <VersionSoftware>1.0.0</VersionSoftware>
+    </Software>
+    <Financiador>
+      <CodigoFinanciador>11</CodigoFinanciador>
+      <CuitFinanciador>30546741253</CuitFinanciador>
+    </Financiador>
+    <Prestador>
+      <CuitPrestador>30708402911</CuitPrestador>
+      <SucursalPrestador>0</SucursalPrestador>
+      <RazonSocial>SANATORIO DE PRUEBA PRUNE</RazonSocial>
+    </Prestador>
+  </EncabezadoMensaje>
+  <EncabezadoAtencion>
+    <Efector>
+      <ApellidoEfector>PRUEBA</ApellidoEfector>
+      <NombreEfector>KINESIOLOGO</NombreEfector>
+      <ProvinciaEfector>B</ProvinciaEfector>
+      <TipoMatriculaEfector>M</TipoMatriculaEfector>
+      <NroMatriculaEfector>1234</NroMatriculaEfector>
+      <EspecialidadEfector>343</EspecialidadEfector>
+    </Efector>
+    <Prescriptor>
+      <FechaReceta>20261118</FechaReceta>
+      <ProvinciaPrescriptor />
+      <TipoPrescriptor>M</TipoPrescriptor>
+      <NroMatriculaPrescriptor>7027</NroMatriculaPrescriptor>
+    </Prescriptor>
+    <Beneficiario>
+      <ApellidoBeneficiario />
+      <NombreBeneficiario />
+      <Sexo> </Sexo>
+      <FechaNacimiento>00000000</FechaNacimiento>
+    </Beneficiario>
+    <Credencial>
+      <NumeroCredencial>60671956201</NumeroCredencial>
+      <VersionCredencial>218</VersionCredencial>
+      <PlanCredencial />
+      <CondicionIVA>E</CondicionIVA>
+    </Credencial>
+    <CoberturaEspecial>CRONICO</CoberturaEspecial>
+    <Atencion>
+      <FechaAtencion>20261118</FechaAtencion>
+      <HoraAtencion>105521</HoraAtencion>
+    </Atencion>
+    <Diagnostico />
+    <RtaAdicional>
+      <Coseguro>0.00</Coseguro>
+    </RtaAdicional>
+  </EncabezadoAtencion>
+  <DetalleProcedimientos>
+    <NroItem>1</NroItem>
+    <CodPreautorizacion />
+    <CodPrestacion>660475</CodPrestacion>
+    <CodAlternativo />
+    <PiezaDental />
+    <CaraDental />
+    <TipoPrestacion>1</TipoPrestacion>
+    <ArancelPrestacion>0</ArancelPrestacion>
+    <CantidadSolicitada>1</CantidadSolicitada>
+    <CantidadAprobada>000001</CantidadAprobada>
+    <SaldoPrestaciones />
+    <DescripcionPrestacion />
+    <Facturacion />
+    <ImporteACargoAfiliado />
+    <ImporteCobertura>000000000</ImporteCobertura>
+    <CodRta>000</CodRta>
+    <MensajeRta>Autorizado</MensajeRta>
+    <CodAutorizacion />
+    <CodDiagnosticoPrestacion />
+    <IVA />
+  </DetalleProcedimientos>
+  <DetalleProcedimientos>
+    <NroItem>2</NroItem>
+    <CodPreautorizacion />
+    <CodPrestacion>660001</CodPrestacion>
+    <CodAlternativo />
+    <PiezaDental />
+    <CaraDental />
+    <TipoPrestacion>1</TipoPrestacion>
+    <ArancelPrestacion>0</ArancelPrestacion>
+    <CantidadSolicitada>1</CantidadSolicitada>
+    <CantidadAprobada>000001</CantidadAprobada>
+    <SaldoPrestaciones />
+    <DescripcionPrestacion />
+    <Facturacion />
+    <ImporteACargoAfiliado />
+    <ImporteCobertura>000000000</ImporteCobertura>
+    <CodRta>000</CodRta>
+    <MensajeRta>Autorizado</MensajeRta>
+    <CodAutorizacion />
+    <CodDiagnosticoPrestacion />
+    <IVA />
+  </DetalleProcedimientos>
+</Mensaje>
