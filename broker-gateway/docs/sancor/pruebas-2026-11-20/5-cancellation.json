@@ -1,0 +1,1 @@
+{"requestId":"a43bbd40-a6aa-43b7-b92d-2be5951a059f","traceId":"6206fcaa-116a-4ba1-b2f0-e5ed19df1aaa","broker":"sancor","brokerReferenceId":"SANCOR-CANCEL-139222934","brokerMetadata":{"name":"sancor","version":"1.0.0","environment":"test","capabilities":["eligibility","authorization","transaction","cancellation","priorAuthorization","memberToken"]},"cancelStatus":"approved"}
