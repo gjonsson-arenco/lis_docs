@@ -371,6 +371,15 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 
 ### 6.3 URLs cuando no hay dominio ni TLS
 
+Antes de resignarse a la IP: aunque el cliente no tenga DNS propio ni el server
+reciba conexiones desde internet, se puede servir el LIS por un nombre con
+certificado válido. El nombre se crea en nuestra Route53 apuntando a la IP
+privada del server, y el certificado lo emite Let's Encrypt validando por DNS
+contra esa zona (el server sólo necesita salida a internet). Así está armado en
+CEBAC: `lis-infra/nginx/certbot/README.md` (rama `deploy/cebac`) tiene el
+procedimiento completo, incluida la lista de todo lo que hay que reapuntar al
+cambiar de origen.
+
 Si el acceso es solo por VPN sin dominio público, las URLs que le importan al
 navegador (redirect/logout URIs de un proveedor OAuth, CORS) tienen que usar la
 **IP privada del server + puerto**, con `http://` (no `https://`):
