@@ -53,6 +53,7 @@ Documentación de infraestructura y deploy.
 - **cebac-bitra-aws.md** - Deploy de bitra cebac en AWS (CloudFront, ECS Fargate, Lambdas de Cognito, messaging centralizado con SQS) y APK de Android
 - **cebac-bitra-aws-todo.md** - To-do de AWS para ese deploy, en orden y con checkboxes
 - **cebac-bitra-aws-deployer-policy.json** - Política inline del usuario IAM de deploy (roles y políticas sólo con los prefijos de los stacks)
+- **printing.md** - Impresión: qué documento sale por dónde (reporting service + navegador, rótulos ZPL/EPL directo por TCP 9100), cómo se da de alta una impresora de etiquetas por estación, el tótem con `--kiosk-printing` y cómo probar un diseño en Labelary
 
 ### 📝 Documentos transversales
 - **[FUTURE_IMPROVEMENTS.md](./FUTURE_IMPROVEMENTS.md)** - Backlog vivo de mejoras futuras agrupado por módulo, con prioridad y ubicación exacta de cada cambio.
