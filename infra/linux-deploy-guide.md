@@ -237,6 +237,8 @@ Si igual da `Permission denied` en el server, correrlo como `bash scripts/redepl
 | `export-users.sh` | server | Respalda usuarios, roles y favoritos al JSON que restaura `CebacUsersSeeder` |
 | `seed-cebac.sh` | server | Corre `CebacSeeder` (o un seeder puntual) sin tocar el schema |
 | `create-chat-db.sh` | server | Crea la base y el usuario del chat en MySQL (idempotente; lo llama `redeploy.sh`) |
+| `create-backup-user.sh` | server | Crea el usuario de sólo lectura con el que el LIS hace los respaldos (ver [backups.md](./backups.md)) |
+| `db-restore.sh` | server | Restaura una base desde una carpeta de respaldo (**pisa la base destino**; `--into=` para restaurar al costado) |
 | `truncate-chat.sh` | server | Vacía la base del chat y sus claves en Redis (lo llama `db-fresh.sh`; a mano para limpiar el chat sin tocar el LIS) |
 | `reload-rules-cache.sh` | server | Recarga el catálogo de reglas en el `rules-engine` (§7.6) |
 | `copy-requirements.sh` | **tu máquina** | Sube los PDF de indicaciones al volumen del backend |
