@@ -67,6 +67,33 @@ clases. La retención se aplica al final de cada respaldo **exitoso**; un
 respaldo fallido no borra nada. En el disco local sólo se mira la antigüedad,
 y nunca se borra el último completo (si la copia al storage falló, es la única).
 
+### Tercer destino opcional: S3
+
+Además de los dos anteriores, cada respaldo se puede subir a un bucket de S3
+(o compatible, por ejemplo MinIO con `BACKUP_S3_ENDPOINT`). Se activa con
+`BACKUP_S3_BUCKET` en `lis-infra/.env` y se pausa desde el panel ("Subir a
+S3") sin tocar el server. Misma estructura, debajo de `BACKUP_S3_PREFIX`:
+`s3://<bucket>/lis-backups/<año>/<fecha_hora>/`. Entra en la misma retención
+abuelo-padre-hijo, y si no queda copia local ni en el storage, la
+verificación baja el respaldo del bucket a una carpeta temporal y lo prueba
+desde ahí.
+
+Lo que necesita del lado de AWS: un bucket con Block Public Access,
+versionado opcional, cifrado (los objetos se suben con SSE-S3 `AES256` o con
+`aws:kms` más `BACKUP_S3_KMS_KEY_ID`) y un usuario IAM con
+`s3:PutObject`, `s3:GetObject`, `s3:DeleteObject`, `s3:ListBucket` y
+`s3:HeadBucket` sobre ese bucket y prefijo. Las credenciales van en
+`BACKUP_AWS_ACCESS_KEY_ID` / `BACKUP_AWS_SECRET_ACCESS_KEY`; vacías, el SDK
+usa la cadena por defecto. Clase de almacenamiento `STANDARD_IA` por
+defecto; para Glacier, mejor una regla de lifecycle en el bucket que
+`BACKUP_S3_STORAGE_CLASS`, porque la verificación necesita poder bajar el
+objeto en el momento.
+
+**Son historias clínicas**: antes de prenderlo en producción, validar con
+legales la región (Ley 25.326), igual que para los documentos en
+[cebac-s3-documents.md](./cebac-s3-documents.md). En QA se puede probar con
+un bucket de la cuenta de CEBAC en `sa-east-1`.
+
 ## 3. Quién lo ejecuta
 
 | Pieza | Dónde corre | Qué hace |
@@ -134,8 +161,17 @@ vencido" del panel (`Horas sin respaldo para alertar`, 36 por defecto).
    "Verificar". Recién después prender el respaldo programado y la
    verificación automática y elegir la hora.
 
-Hasta que CEBAC entregue el share, se puede dejar prendido igual: queda la
-copia local y el panel avisa en amarillo que no hay storage de respaldos.
+Hasta que CEBAC entregue el share, se puede desplegar y dejar prendido
+igual: queda la copia local en `/opt/lis/backups` y el panel avisa en
+amarillo que no hay storage de respaldos. Cuando llegue el share, alcanza con
+montarlo en `/mnt/lis-backups`, crear el marcador y esperar al próximo
+respaldo: no hace falta redeploy, porque el bind mount del punto de montaje
+ya está y va con propagación `rslave`, así que el mount nuevo del host se ve
+adentro. Comprobarlo con
+`docker compose … exec -T worker ls -la /backups/secondary/`; si no aparece
+el marcador, `up -d backend scheduler worker` lo resuelve. Si en el medio se quiere una copia fuera
+del edificio, el bucket de S3 (§2) se agrega con las variables
+`BACKUP_S3_*` y `up -d backend scheduler worker`.
 
 ## 5. Verificación
 
