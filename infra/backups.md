@@ -157,7 +157,7 @@ vencido" del panel (`Horas sin respaldo para alertar`, 36 por defecto).
    (el segundo crea los parámetros de retención; el panel los crea solo
    igual la primera vez que se guardan).
 
-7. En Administración > Respaldos: "Respaldar ahora", esperar el resultado,
+7. En Administración > Sistema > Respaldos: "Respaldar ahora", esperar el resultado,
    "Verificar". Recién después prender el respaldo programado y la
    verificación automática y elegir la hora.
 
