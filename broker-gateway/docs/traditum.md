@@ -38,8 +38,8 @@ MSH fijo de ida: `MSH|{codificación}|TRIA0100M|{sitio}|MEDIFE|MEDIFE^222222^IIN
 ### Segmentos de ida
 
 - `PRD|PS^Prestador Solicitante||^^^{prov}||||{id}^CU`: el laboratorio. PRD-7.1 es el CUIT "o el número que MEDIFE definió para el prestador"; PRD-3.4 la provincia con la letra de patente vieja (Misiones = `N`).
-- `PRD|PR^Prestador Prescriptor||||||{matrícula}^{MN|MP}^{prov}`: el médico de la orden. Rev. 07 agrega la provincia de la matrícula en PRD-7.2.3. Existen los rechazos M065 (requiere prescriptor) y M066 (requiere efector).
-- `PRD|PE^Prestador Efector||||||{matrícula}^{MN|MP}^{prov}`: el bioquímico.
+- `PRD|PR^Prestador Prescriptor||||||{matrícula}^{MN|MP}&&{prov}`: el médico de la orden. Rev. 07 agrega la provincia de la matrícula en PRD-7.2.3, o sea como tercer subcomponente del ámbito (`4321^MP&&C`); el prescriptor y el efector no llevan PRD-3.4 (Traditum, 24/11/2026). Existen los rechazos M065 (requiere prescriptor) y M066 (requiere efector).
+- `PRD|PE^Prestador Efector||||||{matrícula}^{MN|MP}&&{prov}`: el bioquímico.
 - `PID|||{credencial}^^{token}^MEDIFE^HC||UNKNOWN`: la credencial del afiliado (14 dígitos en los ejemplos) y, en PID-3.3, el token de seguridad si MEDIFE lo pide (rechazo M220 si es inválido).
 - `DG1|1||{CIE-10}^^I10|||W`: diagnóstico, máximo 7 caracteres. Está en todos los ejemplos de autorización; M073 "la práctica requiere diagnóstico válido".
 - `PR1|{n}||{código}^^{nomenclador}`: práctica, código de hasta 8 caracteres. Nomencladores: 1 médicas, 2 odontológicas, 3 bioquímicas, 7 LICISA no nomenclada.
@@ -61,7 +61,7 @@ Está en `lis-broker-gateway/src/infrastructure/brokers/adapters/traditum/`, cal
 - `eligibility` (Z01), siempre. `transaction` (Z02), `cancellation` (Z04, entera) y `priorAuthorization` (el número de pre-autorización de la prepaga por práctica, en el ZAU del bloque) sólo con `TRADITUM_TRANSACTIONS_ENABLED`. `memberToken` con `TRADITUM_MEMBER_TOKEN_REQUIRED`. El ingreso de diagnóstico (Z03) está implementado como `reportDiagnosis`.
 - No hay `authorization`: MEDIFE no pre-autoriza sin consumir. En el LIS es el flujo "sólo Transaction".
 - El financiador sale del `payerCode` (`traditum-payers.ts`: medife, MED_O, MED_V); si no se reconoce, `TRADITUM_DEFAULT_PAYER`.
-- Prescriptor y efector van por matrícula con la provincia en PRD-3.4 y también como tercer componente de PRD-7 (`4321^MP^N`), que es la lectura que hicimos del "PRD-7.2.3" de la rev. 07. **A verificar en testing**: si MEDIFE rechaza el PRD, probar la provincia como subcomponente (`4321^MP&&N`).
+- Prescriptor y efector van por matrícula en PRD-7, con la provincia de la matrícula como tercer subcomponente del ámbito (`4321^MP&&N`), sin PRD-3.4: así lo confirmó Traditum el 24/11/2026 (hasta entonces la mandábamos como tercer componente, `4321^MP^N`, que MEDIFE aceptaba sin quejarse). Las matrículas del anexo son informativas, MEDIFE no las valida en testing.
 - Los códigos de práctica son los del set del LIS asociado a las coberturas de MEDIFE; el adapter sólo agrega el nomenclador (`TRADITUM_NOMENCLATOR`, 3 = bioquímicas).
 - La tabla de códigos (`traditum-codes.ts`) se reconstruyó del anexo, cuyo PDF la tiene desfasada; están confirmados por los ejemplos M001, M011, M018, M020, M044 y M220.
 - Variables en `.env.example`, sección Traditum. Traza en `logs/traditum-adapter.log`.
@@ -86,9 +86,19 @@ Con el sitio, usuario y prestador de prueba del documento, y el afiliado de prue
 
 - Login y EnviarFlat funcionan; el token de testing dura 3000 s (el documento dice 300 en producción). La respuesta vuelve con los segmentos separados por CR.
 - Elegibilidad: `M001^PRESTADOR SIN COBERTURA PARA EL PLAN`. El afiliado existe (vuelve "DE PRUEBA, ASOCIADO", DNI 9999999, plan `0`) pero el prestador de prueba no cubre su plan. Nótese que el anexo muestra M001 como "PRESTADOR INEXISTENTE": el texto que importa es el que viene en el ZAU.
-- Autorización de 420101 (nomenclador 1) y de 660001 (nomenclador 3): cabecera `M000^VER "MOTIVO DE RECHAZO"` y la línea `M022^PRESTACION SIN COBERTURA PARA EL PLAN`. La estructura del mensaje se aceptó; el prescriptor volvió como `^^C` y el efector vacío, o sea que las matrículas 4321/1234 de los ejemplos no existen en el testing actual.
+- Autorización de 420101 (nomenclador 1) y de 660001 (nomenclador 3): cabecera `M000^VER "MOTIVO DE RECHAZO"` y la línea `M022^PRESTACION SIN COBERTURA PARA EL PLAN`. La estructura del mensaje se aceptó; el prescriptor volvió como `^^C` y el efector vacío. Traditum aclaró el 24/11 que las matrículas del anexo son informativas y no se validan.
 
 Para homologar hace falta que Traditum dé datos de prueba vigentes (prestador y afiliado con cobertura, matrículas) o habilite el sitio de CEBAC en testing.
+
+## Segunda ronda (24/11/2026)
+
+MEDIFE (Ariel López) aclaró que valida el prestador contra su padrón real aunque se entre por el testing de Traditum: el 99682737650 del anexo no existe. Con el CUIT de CEBAC (`30672372697`, provincia N) en PRD PS y el mismo afiliado de prueba:
+
+- Elegibilidad: `B000^OPERACION SATISFACTORIA`, plan PLATA, ZIN Y.
+- Autorización: la estructura pasa y el PRD-7 nuevo vuelve como `^&&N`, pero todas las prácticas bioquímicas probadas dan `M020^PRESTACION INEXISTENTE`: 660475 y 660001 en nomenclador 3, 660475 en nomenclador 1, 0475 y 475 en nomenclador 3. 420101 (consulta) en nomenclador 1 da `M045^PRACTICA NO CONVENIDA O NO REGISTRADA EN SISTEMA`, o sea que ese código existe pero no está en el convenio de CEBAC. CEBAC factura a MEDIFE con NBU 2016 (tarifa 688 del legacy), así que el nomenclador 3 de MEDIFE no es el NBU tal cual: hay que pedirles la tabla de códigos o un código válido.
+- Anulación: sin autorización aprobada no se pudo probar.
+
+Las muestras de esta ronda se mandaron al ticket el 24/11 (elegibilidad, 660475/3 y 420101/1, solicitud y respuesta por archivo).
 
 ## Preguntas abiertas (a Marcelo / Traditum / MEDIFE)
 
