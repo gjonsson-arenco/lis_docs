@@ -61,6 +61,12 @@ Busqueda por orden de especificidad y vigencia:
    - plan+tipo especificos tienen mayor prioridad,
    - luego tipo,
    - luego convenio global (`NULL/NULL`).
+5. condicion sobre la orden (`conditions`, mismo DSL y mismos hechos que `practice_types.conditions`: tipo de paciente, origen, servicio, plan, particular):
+   - el convenio condicionado que no se cumple se descarta;
+   - a igual alcance (plan o tipo), el condicionado que se cumple pisa al generico; un convenio de plan sigue ganandole al condicionado del tipo;
+   - sin hechos (estimacion sin tipo de paciente), "es igual a" no se cumple y "es distinto de" si.
+   - caso tipico: PAMI con un convenio "tipo de paciente distinto de I" (ambulatorio, UB nivel 1) y otro "tipo de paciente = I" (internados, UB nivel 2), o un convenio propio para un origen.
+   - el detector de solapamientos solo marca convenios con la misma condicion.
 
 Si no encuentra convenio activo, la practica queda `unresolved` con razon `no_active_agreement`.
 
