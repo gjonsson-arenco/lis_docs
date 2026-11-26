@@ -497,14 +497,392 @@ convenios por tipo de paciente.
 - **Cultivos.** PAMI tiene una sola práctica de cultivo (660105) y la lista de nivel 1 de
   Labcore les daba 7 unidades a la mayoría de los cultivos y 5 a otros. Hay que definir
   cuántas unidades lleva; mientras tanto, 37 cultivos no cotizan como ambulatorio.
-- **Estudios sin práctica PAMI.** 106 estudios que hoy se cotizan a PAMI ambulatorio con la
-  lista de Labcore no tienen práctica en el set PAMI (FISH, PCR, espermogramas
-  especiales, los códigos propios 800xxx, etc.), y 46 en internados. Hay que confirmar
-  cuáles paga PAMI y con qué práctica; los que no, se cotizan como particular.
 - **Traslocaciones varias (889641).** La lista de Labcore tenía 230 y 300 unidades según la
   subletra.
 
-Registro interno: `operation_logs` #198.
+### Mapeo de los estudios que perdían cotización
+
+Quedaban 119 estudios que hoy se cotizan a PAMI con la lista de Labcore y no tenían
+práctica en el set PAMI (106 en ambulatorio y 46 en internados, algunos en los dos). Se
+revisaron uno por uno:
+
+- **Aplicados por regla (43 estudios, 73 mapeos):** el mismo código NBU con el prefijo
+  PAMI (88 en nivel 1, 77 en nivel 2), la misma determinación y las mismas unidades que hoy.
+  Por ejemplo: FISH de RB1, ATM e IGH/FGFR3; traslocaciones 14;18, MLL/AF4, PML-RAR,
+  AML1-ETO y TEL-AML1; pro-BNP; proteína C y S; plasminógeno; parainfluenza 1, 2 y 3; ASCA;
+  hemoglobinuria paroxística nocturna; hepatitis delta; gliadinas; Polyomavirus BK. El
+  dengue por PCR pasa a la práctica PAMI de 110 unidades (hoy 130).
+- **Confirmados por Gonzalo (14):** la misma determinación con otro nombre en PAMI. La
+  práctica PAMI no tenía precio y tomó las unidades con las que el estudio cotiza hoy: CH50,
+  MAR test, azul de anilina, test de MOST, test hiposmótico, 2,5-hexanodiona, p-aminofenol,
+  triple test, anti-ribosomal P, litiasis renal, Leishmania, galactomanano, Bordetella por
+  PCR y MuSK.
+
+| | Hoy | Con el set PAMI |
+|---|---|---|
+| Ambulatorio | 940 | 952 |
+| Internados | 661 | 819 |
+
+**Para confirmar con CEBAC (16):** son de otro método o variante.
+- Fibrosis quística ΔF508 → "19 mutaciones".
+- Filiación de adulto → "filiación hasta 3".
+- HLA B27 antígeno → HLA B27 molecular.
+- HLA DQ2/DQ8: la práctica de nivel 3 (sin precio) o "HLA DQ molecular" (160 unidades).
+- Hantavirus totales → Hantavirus IgM.
+- *R. conorii* → *R. typhi*.
+- Los 4 estudios 669641 (FIP1L1-PDGFRA, MPL, FLT3, NPM1) → "traslocaciones varias", que
+  necesita definir 230 o 300 unidades.
+- FISH AML1-ETO y PML-RAR → la traslocación por PCR.
+- Tiempo de sangría → "coagulación y sangría" (1 unidad, hoy 8).
+- TPHA → "FTA-ABS y TPHA" (8 unidades, hoy 15).
+- Influenza A+B por PCR → influenza B por PCR.
+
+**Sin práctica PAMI (46):** si PAMI no los paga, se cotizan como particular.
+- **Faltan en nivel 2:** cetonuria, Coombs directa e indirecta, fibrinógeno, ácido fólico y
+  HLA B27.
+- **FISH:** el resto (5q, 7q, centrómero 8, MLL, 1p/1q).
+- **Moleculares y paneles:** panel respiratorio, carbapenemasa, BRCA por secuenciación,
+  Chikungunya, SARS-CoV-2 por PCR, rinovirus, Zika, JAK2, cultivo de Neisseria, urocultivo
+  de primer chorro.
+- **Otros:** espermogramas especiales, Helicobacter antígeno, hepatitis E IgM, PRP,
+  risperidona.
+- **Códigos propios 800xxx:** COVID, inhibidor de factor VIII, screening prenatal, etc.
+
+Registro interno: `operation_logs` #198 (set y nomenclador), #199 y #200 (mapeos), #201
+(precios de los 14).
+
+---
+
+## 25/11/2026 · PAMI: una sola cobertura
+
+Pedido por Gonzalo Jonsson. Con la versión del 25/11 (convenios y códigos hacia Labcore
+que dependen de la orden), PAMI quedó como una sola cobertura.
+
+**Cobertura "PAMI"** (código 53, la que tenía pacientes y órdenes), con el set PAMI de tres
+niveles. El convenio que se aplica depende de la orden:
+
+| Convenio | Se aplica cuando | Nomenclador | Valor de unidad |
+|---|---|---|---|
+| PAMI ambulatorio | el paciente no es internado y la orden no es de Sanatorio Posadas | PAMI | $693,71 |
+| PAMI internados | el paciente es internado y la orden no es de Sanatorio Posadas | PAMI | $564,22 |
+| PAMI Sanatorio Posadas | la orden es del origen Sanatorio Posadas | NBU 2016-2019 | $620,65 |
+
+Ejemplo, hemograma: ambulatorio 4 unidades = $2.774,84; internado 3 unidades = $1.692,66;
+Sanatorio Posadas $1.861,95. Ambulatorio cotiza 952 estudios, internados 819 y Sanatorio
+Posadas 929.
+
+**Bajas:** las coberturas PAMI CEMEBA (cápita y directo), PAMI Nivel III, PAMI Nivel III
+extracápita, PAMI Nosiglia y PAMI Posadas, con sus convenios, y los nomencladores 485 PAMI
+AMB, 349 PAMI N2 y PAMI NIVEL III. Ninguna tenía pacientes ni órdenes.
+
+**Hacia Labcore**, la cobertura PAMI viaja como:
+- 54 (PAMI Nosiglia) cuando la orden es del origen Nosiglia;
+- SP023 (PAMI Posadas) cuando es del origen Sanatorio Posadas;
+- 53 (PAMI Ambulatorio) en el resto.
+
+**Para definir con CEBAC:** cuándo una orden tiene que llegar a Labcore como PAMI CEMEBA cápita
+(PAM_C) o directo (PAM_D), PAMI Nivel III (20040) o extracápita (P_EC). Hasta entonces esas
+órdenes llegan como 53, y un paciente que en Labcore tiene alguna de esas coberturas aparece
+en admisión sin cobertura, para elegirla a mano.
+
+Registro interno: `operation_logs` #202.
+
+---
+
+## 25/11/2026 · Fusión de coberturas del mismo financiador
+
+Pedido por Gonzalo Jonsson. Criterio: una cobertura por financiador (a quién se le
+factura). Cuando lo único que cambia es el tipo de paciente, el plan o el sanatorio, va en
+una sola cobertura, y Labcore sigue recibiendo su código de siempre según la orden. Ninguna
+de las coberturas dadas de baja tenía pacientes ni órdenes. Quedan 207 coberturas (eran 222).
+
+**Internados con el mismo financiador.** Cada par quedó en una cobertura:
+
+| Cobertura | Se dio de baja | Convenio | Hacia Labcore |
+|---|---|---|---|
+| OSPECON IOT | OSPECON INTERNADOS IOT | el mismo (NBU 2016, $961,71) | OI; IO024 si el paciente es internado |
+| VISITAR IOT | VISITAR IOT INTERNADOS | el mismo (NBU 2016, $938,95) | AV; VII si es internado |
+| TRASPLANTE MISIONES | Trasplante Misiones internados | el mismo (293, $730) | TM; TMI si es internado |
+| LUZ Y FUERZA | LUZ Y FUERZA INTERNADOS | general N_1002 a $1.428; internados 293 a $1.407,93 | 793; 29 si es internado |
+
+**Planes.** Cada grupo quedó en una cobertura con planes y un convenio para todos:
+
+| Cobertura | Planes | Convenio | Hacia Labcore |
+|---|---|---|---|
+| UPCN | Accor ambulatorio gravado y no gravado, Plan clásico gravado y no gravado | 340 - NBU 2024, $920 | 1614, 614NG, 20072 y UPCNG según el plan |
+| MEDIFE | Obligatorio, Voluntario | 438 - NBU 2016, $1.120,44 | MED_O, MED_V |
+| HOSPITAL ALEMAN | Gravado, No gravado | NBU 2016, $1.033,80 | HA_G, HA_NG |
+
+En la admisión hay que elegir el plan del afiliado. Si no se elige, la orden llega a Labcore
+con el código del primer plan (Accor gravado, Medife obligatorio, Hospital Alemán gravado).
+
+**Particulares internados.** Las seis coberturas de particulares internados (Boratti,
+Camino, CEMEBA, IOT, Nosiglia y Posadas) se dieron de baja. La cobertura PARTICULARES suma el
+convenio "particulares internados en sanatorio" (340 - NBU 2024, $1.700), que se aplica
+cuando el paciente es internado y la orden viene de uno de esos seis sanatorios. Hacia
+Labcore sale el código de cada sanatorio (10001, SC009, 10003, 10005, 10002, 10004). Un
+particular ambulatorio, o uno internado en una sede de CEBAC, sigue con el convenio
+particular de siempre ($810). Ese mismo precio de particular internado es el que se muestra
+como referencia cuando la cobertura de un internado de esos sanatorios no cubre una
+práctica.
+
+Registro interno: `operation_logs` #203.
+
+---
+
+## 25/11/2026 · OSDE: se revierten las equivalencias
+
+Pedido por Gonzalo Jonsson al revisar el mapeo de OSDE. Quedan los estudios que son una
+variante con letra de una práctica OSDE (por ejemplo, Chlamydia PCR en cada material →
+663649, HIV combo → 660063). Se quitaron los 32 mapeos que llevaban un estudio a una
+práctica OSDE de otro código, o a varias prácticas:
+
+- **Equivalencias con otro código:** HPV a 6531, HLA DQ2/DQ8 a 6244, panel respiratorio a
+  6865, panel de cáncer hereditario a 7191, JAK2 a 6821, Von Willebrand a cofactor de
+  ristocetina, TSH neonatal, fenciclidina, porfirinas, protoporfirina, hidatidosis, HIV en
+  plasma seminal, Listeria, TPHA y sífilis IgG a FTA/ABS, carbamazepina epóxido, tiempo de
+  sangría, MAR test, calcitriol, dengue IgM.
+- **Varias prácticas:** excreción fraccional de sodio y de potasio (creatinina + ionograma
+  plasmático + ionograma urinario).
+
+Quedan, por ser variantes de su código base: urocultivo + orina completa → urocultivo
+(660911), micobacterias atípicas → 667669, ASCA IgA → 668956 y recuento celular en bolsa de
+diálisis → 660620.
+
+OSDE y Binaria pasan de cotizar 810 estudios a 782 (59% de lo que cotiza el particular).
+Los estudios revertidos vuelven a "usar particular" hasta que CEBAC confirme con qué
+práctica los paga OSDE.
+
+Registro interno: `operation_logs` #204.
+
+---
+
+## 25/11/2026 · Set por defecto: prácticas repetidas por subletra
+
+Pedido por Gonzalo Jonsson. El set por defecto (el del particular y de las coberturas sin set
+propio) traía una práctica por cada variante con letra de un código (660105A cultivo de LCR,
+660105B cultivo de líquido abdominal, …), porque las listas de Labcore ponen precio por
+subletra. Cuando todas las variantes de un código valen lo mismo en todas las listas, son la
+misma práctica: se juntaron en la práctica base.
+
+- 55 familias, 200 prácticas juntadas. El set pasa de 1.423 a 1.226 prácticas.
+- Se crearon tres prácticas base que no existían: 660105 bacteriológico, cultivo e
+  identificación del germen (36 cultivos); 666606 IgE específica (69 alergenos); 669101
+  fenotipificación de síndromes linfoproliferativos (4 citometrías).
+- Ejemplos: ácido base arterial y venoso → 660005; urea sérica, en orina y en diálisis →
+  660902; glucosa en diálisis → 660412; FISH oncohematológicos → 664145; drogas de abuso →
+  661050.
+- Ningún estudio cambió de precio ni dejó de cotizar (verificado en una cobertura por cada
+  lista del set). 122 estudios pasaron a cotizar en 12 coberturas donde su variante no tenía
+  precio y sus hermanas sí (sobre todo IgE específicas, FISH y Chlamydia, al mismo valor que
+  las hermanas en esa lista); confirmado por Gonzalo.
+
+**Quedaron aparte, porque en alguna lista valen distinto que sus hermanas:** cultivos de
+loquios, punta de catéter y secreción ótica derecha e izquierda; tipificación de germen y
+antibiograma; cultivo de pie diabético; antidepresivos tricíclicos; Chlamydia antígeno en
+orina; FISH 8q24 y t(14;18); IgE a carne vacuna, hormiga negra y Penicillium; panel de
+pólenes de hierbas. Conviene que CEBAC revise si esas diferencias son a propósito o errores
+de carga.
+
+**Sin tocar, porque la práctica base vale distinto que las variantes:** creatinina,
+micológicos, filiación y Mycoplasma-Ureaplasma. Tampoco se tocaron las variantes que son otra
+determinación con otro precio (hemograma e índices hematimétricos, curvas de glucosa e
+insulina, hemocultivos por cantidad de muestras, paneles de subpoblaciones, monitoreo de
+fármacos, etc.).
+
+Registro interno: `operation_logs` #205.
+
+---
+
+## 25/11/2026 · MEDIFE: set de prácticas con los códigos del validador
+
+Pedido por Gonzalo Jonsson. MEDIFE valida las prácticas en línea a través de Traditum, y
+en esa validación espera sus propios códigos: el código NBU sin el "66" inicial, completado
+a seis dígitos (el hemograma 660475 viaja como 000475; la glucemia 660412 como 000412). El
+set S_011 MEDIFE, que estaba vacío, se cargó a partir del set por defecto con los códigos
+en ese formato, y se asignó a la cobertura MEDIFE (MED_O).
+
+- 733 prácticas, una por cada código NBU del set por defecto: 715 códigos base y 205
+  variantes con letra, que para MEDIFE son la misma práctica (todas las IgE específicas
+  660606x van como 000606; los cultivos 660105x como 000105).
+- 1.111 estudios quedaron con su práctica MEDIFE, copiando el mapeo del set por defecto.
+  De las 733 prácticas, 727 tienen al menos un estudio.
+- 18 códigos nacieron sólo de variantes porque el set por defecto no tiene la base; 13 toman
+  el nombre oficial del NBU 2024 y 5 conservan el nombre de la variante (001134 monitoreo de
+  antidepresivos, 006290 HIV-RNA en plasma seminal, 009633 BCR-ABL, 009641 FIP1L1-PDGFRA,
+  009936 MLL/AF9).
+
+**Quedan sin práctica MEDIFE 279 estudios**, porque en el set por defecto van con códigos
+propios de CEBAC (800xxx y 900xxx, 223 prácticas), veterinarios (44) o administrativos y
+fórmulas (39). En la admisión de un afiliado de MEDIFE esos estudios no se van a poder
+validar en línea; si alguno se factura a MEDIFE, CEBAC tiene que indicar con qué código.
+
+**Supuesto a confirmar con MEDIFE:** que todo el nomenclador bioquímico siga la misma regla
+que los dos códigos que Traditum probó (000412 y 000475). Si un código no existe para
+MEDIFE, el validador lo rechaza como "prestación inexistente" y la admisión lo muestra.
+
+Registro interno: `operation_logs` #206 (prácticas y mapeos) y #207 (asignación del set).
+
+---
+
+## 25/11/2026 · MEDIFE: nomenclador sobre el set nuevo
+
+Pedido por Gonzalo Jonsson. El convenio de MEDIFE valorizaba con el nomenclador "438 - NBU
+2016", cuyos precios están cargados sobre las prácticas del set por defecto. Como la cobertura
+pasó al set MEDIFE, se creó el nomenclador **N_1011 MEDIFE (NBU 2016)** con los mismos
+precios, por unidades, y el convenio de MEDIFE (vigente desde el 01/06/2026, unidad
+$ 1.120,44) quedó sobre él.
+
+- 667 prácticas del set MEDIFE con el precio que su código NBU tenía en el 438 (el de la
+  práctica base; si la base no tenía, el de la variante, en 16 casos). 66 prácticas quedan
+  sin precio porque tampoco lo tenían en el 438.
+- 27 precios del 438 sobre códigos propios 800/900 del set por defecto se copiaron tal cual,
+  para que esos estudios sigan cotizando a MEDIFE por la práctica del particular como hasta
+  ahora.
+- Estudios que cotizan a MEDIFE: de 997 a 1.062 (del 76% al 81% de lo que cotiza el
+  particular); 65 estudios ganados y ninguno perdido.
+
+**Cambian de precio 19 familias, porque en el 438 la variante valía distinto que la base y el
+set MEDIFE tiene una sola práctica por código, que toma el precio de la base:** curvas de
+somatotrofina (24, 48 y 60 → 12 unidades), hemocultivo automatizado por 2 y 3 muestras (50 y
+75 → 25), hemocultivo común por 2 muestras (7,5 → 10), dengue PCR (130 → 110), Epstein Barr
+carga viral (250 → 150), HLA DR molecular (160 → 150), BCR-ABL cuantitativo (300 → 360),
+índices de función renal (1 → 3), orina completa variante (2,5 → 3), coagulograma variante
+(5,5 → 6), VDRL variante (2 → 4), Chagas Strout variante (6 → 3), fosfatasa ácida variante
+(3 → 5), recuento de blancos variante (0 → 1), cortisol en saliva variante (12 → 10),
+Chlamydia PCR variante C (80 → 90), micológico V (8 → 10), bacteriológico Z (5 → 7) y
+FIP1L1-PDGFRA B (300 → 230). Conviene que facturación confirme si MEDIFE paga esas
+variantes al valor de la base o si hay que tratarlas aparte.
+
+Registro interno: `operation_logs` #208.
+
+---
+
+## 25/11/2026 · MEDIFE: validación en línea por Traditum activa
+
+Pedido por Gonzalo Jonsson. La cobertura MEDIFE quedó conectada al validador de Traditum,
+que es el canal por el que MEDIFE autoriza en línea. Se usa el sitio emisor de CEBAC en la
+producción de Traditum, como indicaron Traditum y MEDIFE en el ticket #67232 (MEDIFE no tiene
+un ambiente de prueba con datos propios: valida contra su padrón real).
+
+- En la admisión de un afiliado de MEDIFE, el sistema consulta la cobertura (elegibilidad) y
+  muestra plan y estado. Con **Registrar** se pide la autorización de las prácticas, que
+  MEDIFE aprueba o rechaza práctica por práctica, y una autorización registrada se puede
+  anular entera. No hay pre-autorización sin consumo: la autorización se pide cuando el
+  operador registra.
+- Las prácticas viajan con los códigos del set S_011 MEDIFE (NBU sin el 66, a seis dígitos)
+  y nomenclador bioquímico. Prescriptor y efector no son obligatorios para MEDIFE; el
+  prescriptor sale de la orden si el médico tiene matrícula cargada.
+- Verificado desde el servidor: la elegibilidad del afiliado de prueba vuelve aprobada
+  (plan PLATA).
+- **Paciente de prueba cargado:** DE PRUEBA, ASOCIADO, DNI 9999999, nacido el 04/12/1968,
+  con cobertura MEDIFE y credencial 30646117400000. Es el afiliado de prueba que provee
+  MEDIFE: sirve para probar elegibilidad, registro y anulación desde la admisión. Las
+  autorizaciones que se registren con él conviene anularlas, y el paciente se borra al
+  terminar la homologación.
+
+Configuración interna: provider `TRADITUM_GATEWAY` (seeder), MED_O con ese provider y payer
+`medife`, bloque `TRADITUM_*` en el `.env.prod` del broker gateway, release
+`cebac/2026-11-25-2342`. Registro interno: `operation_logs` #209 (provider en la cobertura) y
+#210 (paciente de prueba).
+
+---
+
+## 25/11/2026 · Sancor Salud: set y nomenclador propios
+
+Pedido por Gonzalo Jonsson. Sancor Salud va a validar en línea por su autorizador, y las
+coberturas que validan por un proveedor externo se manejan con un set de prácticas y un
+nomenclador propios, aislados del resto. La cobertura SANCOR SALUD (697) facturaba con el set
+NBU 2023 (S_004) y el nomenclador "N_1002 NBU 2023 ORIGINAL", que comparten otras siete
+coberturas (OSA, Luz y Fuerza, UTA, Avalian, OSFATLYF, Medicus).
+
+- Se creó el set **S_012 SANCOR SALUD** como copia exacta del NBU 2023: 1.374 prácticas con
+  los mismos códigos NBU (el autorizador de Sancor los acepta tal cual, sin nomenclador) y los
+  1.072 mapeos de estudios (1.064 estudios).
+- Se creó el nomenclador **N_1012 SANCOR SALUD (NBU 2023)** con los 1.267 precios por unidad
+  del N_1002, práctica por práctica; dos prácticas conservan la marca de "requiere autorización".
+- Los cuatro convenios de la cobertura (C_029 gravados y no gravados a $ 1.060 la unidad;
+  C_032 plan 800 gravados y no gravados a $ 1.010) pasaron al nomenclador nuevo sin cambiar
+  valores ni vigencia.
+- Verificado con la valorización real de la admisión: los cuatro planes cotizan los mismos
+  1.045 estudios que antes (78,4% de lo que cotiza el particular), ninguno ganado ni perdido.
+  A partir de ahora, un cambio de precio o de código para Sancor se hace en N_1012 y S_012 y
+  no toca a las otras coberturas.
+
+Registro interno: `operation_logs` #214 (set), #215 (nomenclador) y #216 (cobertura y
+convenios).
+
+---
+
+## 25/11/2026 · Sancor Salud: validación en línea activa (modo prueba)
+
+Pedido por Gonzalo Jonsson. La cobertura SANCOR SALUD quedó conectada al autorizador HL7 de
+Sancor Salud a través del broker gateway. Sancor no tiene ambiente de prueba: las llamadas van
+a su servicio real marcadas como **desarrollo (D)**, que es lo que Sancor pide para la
+homologación; el pase a producción (P) se hace cuando Sancor revise las pruebas y acuerde la
+fecha, y hasta entonces lo que se autorice no vale como prestación real.
+
+- En la admisión de un afiliado de Sancor, el sistema consulta la elegibilidad (estado, plan),
+  **al cotizar pre-valida las prácticas** sin consumirlas y con **Registrar** pide la
+  autorización, que Sancor aprueba o rechaza práctica por práctica. Una autorización registrada
+  se anula entera.
+- Las prácticas que Sancor autoriza de antemano (formulario 4) se registran con ese número: al
+  subir la autorización de la práctica en la admisión, el sistema pide el número de formulario
+  y lo manda junto con la práctica.
+- Sancor exige el token de 4 dígitos del asociado en cada autorización. Mientras dure la
+  homologación se usa el comodín 9999 que Sancor admite excepcionalmente, así la admisión no
+  pide el token; se le consultó a Sancor si puede seguir así en la puesta en marcha.
+- El prestador y el efector viajan con el CUIT de CEBAC; el prescriptor sale de la orden si el
+  médico tiene matrícula cargada. Si una orden no trae un diagnóstico codificado, va Z71.
+- Verificado desde el servidor: la elegibilidad del asociado de prueba vuelve aprobada (plan
+  SANCOR 1500) y la admisión ve a la cobertura con pre-validación, registro, anulación y
+  número de autorización previa.
+- **Paciente de prueba:** al paciente DE PRUEBA, ASOCIADO (DNI 9999999) se le agregó la
+  cobertura SANCOR SALUD, plan no gravados, con la credencial de prueba 121297/00 que provee
+  Sancor. Sirve para probar el circuito desde la admisión; las autorizaciones que se registren
+  con él conviene anularlas, y la cobertura se borra al terminar la homologación.
+
+Configuración interna: provider `SANCOR_GATEWAY` (seeder), cobertura 697 con ese provider y
+payer `sancor`, bloque `SANCOR_*` en el `.env.prod` del broker gateway (backup
+`.env.prod.bak-20261126004247-sancor`), contenedor del gateway recreado. Registro interno:
+`operation_logs` #219 (provider en la cobertura) y #220 (paciente de prueba).
+
+---
+
+## 26/11/2026 · Swiss Medical: validación en línea activa (ambiente de prueba de SMG)
+
+Pedido por Gonzalo Jonsson. La cobertura SWISS MEDICAL (451) quedó conectada al API de
+prestadores de Swiss Medical Group a través del broker gateway, contra el **ambiente de prueba
+(PRE)** de SMG y con el prestador 130388 de CEBAC. El pase a producción lo define SMG cuando dé
+por homologada la integración y entregue la URL y las credenciales productivas.
+
+- En la admisión de un afiliado de Swiss, el sistema consulta la elegibilidad y con
+  **Registrar** registra las prácticas una por una (cada una con su número de transacción de
+  SMG), así se sabe cuál aprobó y cuál rechazó y se puede anular de a una. SMG puede exigir el
+  token de la credencial digital del afiliado; en ese caso la admisión lo pide.
+- **Set y nomenclador propios, ya estaban y no se tocaron:** la cobertura usa el set S_006
+  SWISS MEDICAL (1.286 prácticas, 1.081 estudios mapeados) y el convenio C_045 con el
+  nomenclador N_1004 SWISS MEDICAL (NBU2016), que tiene precio para las 1.286 prácticas del set
+  ($1.458,49 la unidad desde el 01/09/2026). Hoy cotiza 1.078 estudios, el 80,6% de lo que
+  cotiza el particular; lo que falta son estudios sin práctica en el set (propios 800/900,
+  veterinarios y administrativos).
+- Las coberturas ART SWISS MEDICAL (ASW y PSSW) son ART, no van por este API y siguen con sus
+  convenios NBU.
+- **Estado: el usuario de API que SMG entregó está bloqueado** ("El usuario está bloqueado",
+  error 1005) tanto desde el servidor del laboratorio como desde desarrollo; el último ingreso
+  exitoso fue el 16/10/2026. Hasta que SMG lo desbloquee, la admisión de un afiliado Swiss
+  muestra la validación en línea como no disponible y la cobertura se sigue valorizando por su
+  convenio; la admisión no se traba. Se le pidió a SMG el desbloqueo.
+- **Paciente de prueba:** al paciente DE PRUEBA, ASOCIADO (DNI 9999999) se le agregó la
+  cobertura SWISS MEDICAL con la credencial del socio de prueba que provee SMG
+  (8000067180171000161). Sirve para probar el circuito desde la admisión cuando SMG
+  desbloquee el usuario; se borra al terminar la homologación.
+
+Configuración interna: provider `SWISS_MEDICAL_GATEWAY` (seeder, id 6), cobertura 451 con ese
+provider y payer `swiss-medical`; el bloque `SMG_*` ya estaba en el `.env.prod` del broker
+gateway con los mismos valores que desarrollo (no hizo falta tocar el servidor ni recrear
+contenedores). Registro interno: `operation_logs` #221 (provider en la cobertura) y #222
+(paciente de prueba).
 
 ---
 
@@ -530,7 +908,8 @@ El detalle está en el informe "Coberturas CEBAC QA", sección "Próximos pasos"
    - Completar sodio, potasio y los códigos propios en los NBU nuevos.
    - Definir PAMI.
 4. **Providers.**
-   - ConSalud y Swiss Medical.
+   - ConSalud. (Swiss Medical quedó activada el 26/11 contra PRE; falta que SMG desbloquee el
+     usuario de API y entregue producción.)
    - Pasaporte de producción de ITC.
    - Credenciales de Sancor, Traditum, SMAUNaM y PAMI Mi Cartilla.
 5. **Validación.** Admisiones de prueba por familia de cobertura, comparando con lo que
