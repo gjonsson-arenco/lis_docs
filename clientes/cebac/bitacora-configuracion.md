@@ -902,8 +902,8 @@ OSPEGAP, OSPREME, Particulares (ConSalud) y Prestadores Sanatoriales (ConSalud).
 - Las credenciales del portal ya estaban cargadas en el servidor desde octubre.
 
 **Providers nuevos.** Quedaron registrados en el servidor OSPEDYC Directo (id 7), Visitar (id 8)
-y SMAUNaM / Sistema SOL (id 9), con las mismas definiciones que sus seeders. Todavía no tienen
-coberturas conectadas; el gateway ya los anuncia:
+y SMAUNaM / Sistema SOL (id 9), con las mismas definiciones que sus seeders. OSPEDYC y Visitar
+quedaron conectados a sus coberturas el mismo día; SMAUNaM espera el usuario del portal:
 
 | Provider | Qué hace hoy | Cobertura candidata | Falta |
 |---|---|---|---|
@@ -911,15 +911,13 @@ coberturas conectadas; el gateway ya los anuncia:
 | Visitar | Elegibilidad (lee la página de afiliados, sin usuario) | VISITAR IOT (AV) y ANDAR VISITAR (CIRCULO), 1959 | Nada técnico |
 | SMAUNaM | Elegibilidad; la carga del pedido queda en auditoría de SMAUNaM | SMAUNAM (LC), 1836 | Usuario y clave del Sistema SOL del laboratorio |
 
-**Dos cosas que se vieron en el servidor y conviene resolver:**
-
-- La credencial de Sancor Salud en el gateway es un valor de relleno. Como la cobertura 697 ya está
-  conectada, una admisión de Sancor va a mostrar la validación en línea como no disponible hasta
-  que se cargue la credencial real. La admisión no se traba.
-- ITC sigue apuntando al ambiente de prueba (pendiente el pasaporte de producción).
+**Visto en el servidor:** ITC sigue apuntando al ambiente de prueba (pendiente el pasaporte de
+producción). La credencial de Sancor está bien: el pasaporte que Sancor asigna al laboratorio es
+el número 8, no es un valor de relleno.
 
 Configuración interna: coberturas 9, 44, 71, 72, 73, 79, 132, 228 y 367 con provider 1 y payer
-`consalud` (`operation_logs` #223–231); providers 7, 8 y 9 creados por script con los atributos
+`consalud` (`operation_logs` #223–231); cobertura 14 con provider 7 y payer `ospedyc`, coberturas
+40 y 202 con provider 8 y payer `visitar` (#235–237); providers 7, 8 y 9 creados por script con los atributos
 de `OspedycBrokerGatewaySeeder`, `VisitarBrokerGatewaySeeder` y el nuevo
 `SmaunamBrokerGatewaySeeder` (#232–234; lis-backend `cccdc4e`, ya en CebacSeeder). Capabilities
 desde el servidor: consalud → eligibility; ospedyc → eligibility, authorization; visitar →
@@ -952,8 +950,8 @@ El detalle está en el informe "Coberturas CEBAC QA", sección "Próximos pasos"
 4. **Providers.**
    - Swiss Medical quedó activada el 26/11 contra PRE: falta que SMG desbloquee el usuario de
      API y entregue producción. ConSalud quedó activada el 26/11.
-   - Conectar las coberturas de OSPEDYC y Visitar a sus providers; SMAUNaM cuando haya usuario.
-   - Pasaporte de producción de ITC y credencial real de Sancor.
+   - Conectar SMAUNAM (LC) a su provider cuando haya usuario del Sistema SOL.
+   - Pasaporte de producción de ITC.
    - Credenciales de Traditum, SMAUNaM y PAMI Mi Cartilla.
 5. **Validación.** Admisiones de prueba por familia de cobertura, comparando con lo que
    factura hoy CEBAC, y el informe final.
