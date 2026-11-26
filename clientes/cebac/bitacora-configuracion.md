@@ -921,8 +921,11 @@ Configuración interna: coberturas 9, 44, 71, 72, 73, 79, 132, 228 y 367 con pro
 de `OspedycBrokerGatewaySeeder`, `VisitarBrokerGatewaySeeder` y el nuevo
 `SmaunamBrokerGatewaySeeder` (#232–234; lis-backend `cccdc4e`, ya en CebacSeeder). Capabilities
 desde el servidor: consalud → eligibility; ospedyc → eligibility, authorization; visitar →
-eligibility; smaunam → eligibility. En la configuración del gateway sobran las variables viejas
-de brokers (nada las lee) y falta el bloque de SMAUNaM.
+eligibility; smaunam → eligibility. De la configuración del gateway se quitaron las variables
+viejas que nada leía (`BROKERS_ENABLED`, `BROKER_TRADITUM_*`, `BROKER_IMED_*`, `BROKER_SMG_*`,
+`LOG_LEVEL`, `AWS_REGION` y `BACKEND_URL`, que compose ya fija; backup
+`.env.prod.bak-20261126133128-cleanup`) y el contenedor se recreó. Sigue faltando el bloque de
+SMAUNaM.
 
 ---
 
