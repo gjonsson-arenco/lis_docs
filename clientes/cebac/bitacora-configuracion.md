@@ -903,29 +903,39 @@ OSPEGAP, OSPREME, Particulares (ConSalud) y Prestadores Sanatoriales (ConSalud).
 
 **Providers nuevos.** Quedaron registrados en el servidor OSPEDYC Directo (id 7), Visitar (id 8)
 y SMAUNaM / Sistema SOL (id 9), con las mismas definiciones que sus seeders. OSPEDYC y Visitar
-quedaron conectados a sus coberturas el mismo día; SMAUNaM espera el usuario del portal:
+quedaron conectados a sus coberturas el mismo día; SMAUNaM también, con el usuario que ya usaba la
+admisión en el portal:
 
 | Provider | Qué hace hoy | Cobertura candidata | Falta |
 |---|---|---|---|
 | OSPEDYC Directo | Elegibilidad y consulta de prácticas (no consume) | OSPEDYC UTEDYC (NOSSAL SA), 555 | Decidir si se habilita la registración (hoy apagada) |
 | Visitar | Elegibilidad (lee la página de afiliados, sin usuario) | VISITAR IOT (AV) y ANDAR VISITAR (CIRCULO), 1959 | Nada técnico |
-| SMAUNaM | Elegibilidad; la carga del pedido queda en auditoría de SMAUNaM | SMAUNAM (LC), 1836 | Usuario y clave del Sistema SOL del laboratorio |
+| SMAUNaM | Elegibilidad; la carga del pedido queda en auditoría de SMAUNaM | SMAUNAM (LC), 1836 | Conectada el mismo día con el usuario de admisión del Sistema SOL (ver abajo) |
 
 **Visto en el servidor:** ITC sigue apuntando al ambiente de prueba (pendiente el pasaporte de
 producción). La credencial de Sancor está bien: el pasaporte que Sancor asigna al laboratorio es
 el número 8, no es un valor de relleno.
 
+**SMAUNaM, el usuario.** SMAUNaM no entrega un usuario para el laboratorio: da de alta uno por
+admisionista (así figura en la planilla "coberturas medicas y autorizaciones" de administración).
+El gateway quedó con el usuario de admisión con el que se relevó el portal el 06/10/2026, sólo
+para la validación del afiliado; la carga y anulación de pedidos quedan apagadas. Lo que haga el
+LIS en SOL queda a nombre de ese usuario. Si SMAUNaM crea un usuario propio para el LIS, se
+reemplaza. Probado desde el servidor el 26/11: el gateway inicia sesión en SOL y devuelve un
+afiliado activo con su plan en medio segundo.
+
 Configuración interna: coberturas 9, 44, 71, 72, 73, 79, 132, 228 y 367 con provider 1 y payer
 `consalud` (`operation_logs` #223–231); cobertura 14 con provider 7 y payer `ospedyc`, coberturas
-40 y 202 con provider 8 y payer `visitar` (#235–237); providers 7, 8 y 9 creados por script con los atributos
+40 y 202 con provider 8 y payer `visitar` (#235–237); cobertura 36 con provider 9 y payer `smaunam`
+(#238; bloque `SMAUNAM_*` agregado al `.env.prod` del gateway, backup
+`.env.prod.bak-20261126134423-smaunam`, contenedor recreado); providers 7, 8 y 9 creados por script con los atributos
 de `OspedycBrokerGatewaySeeder`, `VisitarBrokerGatewaySeeder` y el nuevo
 `SmaunamBrokerGatewaySeeder` (#232–234; lis-backend `cccdc4e`, ya en CebacSeeder). Capabilities
 desde el servidor: consalud → eligibility; ospedyc → eligibility, authorization; visitar →
 eligibility; smaunam → eligibility. De la configuración del gateway se quitaron las variables
 viejas que nada leía (`BROKERS_ENABLED`, `BROKER_TRADITUM_*`, `BROKER_IMED_*`, `BROKER_SMG_*`,
 `LOG_LEVEL`, `AWS_REGION` y `BACKEND_URL`, que compose ya fija; backup
-`.env.prod.bak-20261126133128-cleanup`) y el contenedor se recreó. Sigue faltando el bloque de
-SMAUNaM.
+`.env.prod.bak-20261126133128-cleanup`) y el contenedor se recreó.
 
 ---
 
@@ -953,7 +963,7 @@ El detalle está en el informe "Coberturas CEBAC QA", sección "Próximos pasos"
 4. **Providers.**
    - Swiss Medical quedó activada el 26/11 contra PRE: falta que SMG desbloquee el usuario de
      API y entregue producción. ConSalud quedó activada el 26/11.
-   - Conectar SMAUNAM (LC) a su provider cuando haya usuario del Sistema SOL.
+   - Pedirle a SMAUNaM un usuario del Sistema SOL propio del LIS (hoy usa el de una admisionista).
    - Pasaporte de producción de ITC.
    - Credenciales de Traditum, SMAUNaM y PAMI Mi Cartilla.
 5. **Validación.** Admisiones de prueba por familia de cobertura, comparando con lo que
