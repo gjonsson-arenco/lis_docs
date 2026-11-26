@@ -531,7 +531,11 @@ Notas sobre `requirements`:
 - `POST /api/v1/admission-requirements/resolve`
 
 Devuelve los requerimientos de los estudios enviados, deduplicados y con la
-lista de estudios que los originan. Cada item trae `category`
+lista de estudios que los originan. Cada entrada de `studies[]` trae ademas
+`test_type_id`, `test_type_code` y `test_type_name` (nulos si no aplica): la
+prueba de ese estudio en la que se carga la respuesta al crear la orden
+(`tests.result_text` / `result_number`, ver `RequirementResultWriter`), y que
+viaja a los proveedores como `studies[].tests[].result`. Cada item trae `category`
 (`indication|administrative|technical`), `type` (`info|data|printable`),
 `severity` (solo en `indication`) y `layout`.
 

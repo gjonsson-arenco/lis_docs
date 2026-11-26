@@ -141,6 +141,13 @@ Nota: en `PATCH` todos los campos son opcionales (`sometimes`), en `POST` los ma
 - `preparation_time` (optional, json/array)
 - `component_study_type_ids` (optional, array de ids; los estudios que componen la rutina, en orden. Reemplaza el pivot completo)
 - `triggered_study_type_ids` (optional, array de ids; los estudios que este arrastra. Reemplaza el pivot completo)
+- `sample_type_ids` / `requirement_type_ids` (optional, arrays de ids; reemplazan el pivot completo)
+- `requirement_tests` (optional, array de `{ requirement_type_id, test_type_id }`): en que prueba del
+  estudio se carga la respuesta de cada requerimiento de tipo `data` (lo que Labcore hacia con
+  `<pruebas><prueba>` en la encuesta: peso para el clearance, FUM, semanas de gestacion). La prueba
+  tiene que ser del estudio (422 si no). Lo que no viene en la lista queda sin prueba. Se guarda en
+  `study_requirement_type.test_type_id` y la relacion `requirementTypes` lo devuelve en `pivot.test_type_id`.
+  `POST .../{studyType}/requirement-types` acepta el mismo `test_type_id` opcional.
 - `sort_order` (optional)
 - `working_area_id` (required para `class=study`; para una rutina lo resuelve el backend)
 - `is_active` (optional)

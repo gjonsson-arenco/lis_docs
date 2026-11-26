@@ -366,6 +366,16 @@ tendría que deduplicar por `event_id`.
 | `source` | `lis-backend` |
 | `payload` | JSON con `order`, `patient`, `insurance`, `physician`, `studies[].tests[]`, `samples[]`, `mappings` |
 
+Cada `studies[].tests[]` puede traer `result: { value, source }`: el valor que
+admisión ya cargó en la prueba (la respuesta de un requerimiento que el estudio
+manda a esa prueba, `source = "admission"`). El adapter de Labcore lo traduce a
+`studies[].results[] = { testCode, value }` del alta, con el código de prueba
+mapeado como cualquier otra, y la Labcore API lo escribe en `l_resultado` al
+crear la prueba, que nace con `l_estado = 2` (resultado cargado, pendiente de
+validar) en vez del 0 de una prueba sin valor; en un reenvío lo pisa salvo que
+la prueba ya esté validada. Sin `result`, o con valor vacío, la prueba nace
+vacía como siempre.
+
 El stream va **sin el prefijo** que Laravel le pone a sus claves (conexión
 `events` en `config/database.php`), así el nombre es el mismo de los dos lados.
 
