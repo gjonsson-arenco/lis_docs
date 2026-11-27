@@ -267,6 +267,34 @@ por los estudios que la componen, cada uno con `source=routine` y
 - `min_volume_required` (optional)
 - `is_active` (optional)
 
+### requirement-types
+- `code` (required, unique, max 30)
+- `version` (optional, default 1)
+- `name` (required, max 140)
+- `description` (optional, texto largo; en una indicacion de texto es la
+  preparacion completa que ve el paciente)
+- `category` (optional: `indication|administrative|technical`, default
+  `administrative`). Indicacion: preparacion que se le entrega al paciente.
+  Administrativo y tecnico: lo que resuelve el operador.
+- `type` (optional: `info|data|printable`, default `info`). Una indicacion solo
+  admite `info` o `printable`; un dato (`data`) se captura con `layout`.
+- `severity` (optional, nullable: `info|warning|critical`). Solo en indicaciones
+  y en avisos al operador (tipo `info` de cualquier categoria); en el resto el
+  backend la rechaza.
+- `stage` (optional: `admission|sampling|both`, default `admission`). Cuando se
+  resuelve: en el paso 3 de admision, en la toma de muestras o en las dos. Lo
+  de `sampling`/`both` que sea `data` lo abre el backend en la orden para que
+  la toma lo complete.
+- `blocking` (optional, boolean, default true). Si frena el paso mientras no
+  este resuelto; los opcionales se muestran y se guardan nomas.
+- `layout` (optional, json/array): `{type: text|bool|date|list, label,
+  required, values}` para un dato; `{type: document, source: {disk, path}}`
+  para un imprimible; nulo para un `info`.
+- `is_active` (optional)
+
+Los vinculos con los estudios se editan desde `study-types`
+(`requirement_type_ids` y `requirement_tests`).
+
 ### reporting-types
 - `test_type_id` (required)
 - `method_type_id` (required)

@@ -939,6 +939,71 @@ viejas que nada leía (`BROKERS_ENABLED`, `BROKER_TRADITUM_*`, `BROKER_IMED_*`, 
 
 ---
 
+## 27/11/2026 · Indicaciones, encuestas y avisos: reordenamiento del catálogo
+
+El catálogo de requerimientos vino del import de Labcore (240 "indicaciones") mezclando
+cuatro cosas: preguntas al paciente, avisos al operador, instrucciones de preparación en
+PDF y formularios o consentimientos en PDF. Relevamiento del 26/11 en el informe
+"Indicaciones y encuestas CEBAC". Decisiones de Arenco del 27/11, aplicadas por seeder
+(`CebacRequirementCurationSeeder`, lis-backend) y pendientes de revisión de CEBAC desde
+Configuración → Requerimientos.
+
+**Qué cambia en la admisión**
+
+- El paso 3 pasa a mostrar las **indicaciones para el paciente** (preparación), con el
+  texto completo y un tilde "Entregada" por indicación; lo entregado queda registrado en la
+  orden y la toma de muestras lo ve. Hasta ahora las indicaciones no aparecían en ningún
+  paso del circuito de laboratorio: sólo en el diálogo de órdenes médicas de bitra.
+- Los **avisos al operador** (los MENSAJE_* de Labcore) se muestran como avisos con color
+  según severidad y ya no hay que tildarlos todos para avanzar. Siguen siendo un tilde los
+  seis que son una pregunta de sí/no (cariotipo, estallido respiratorio, HLA B27, BCR/ABL,
+  FISH: "¿se cumple la restricción de día?"; HPV: "¿trae el cepillo?").
+- Cada requerimiento tiene **etapa** (admisión, toma de muestras, ambas) y si es
+  **bloqueante**. Lo no bloqueante se muestra y se guarda pero no frena el paso. El valor
+  de "bloqueante" se recuperó del `noBloqueante` de Labcore: 55 preguntas quedaron
+  opcionales y 52 bloqueantes.
+- Lo que se pregunta en la toma de muestras queda abierto en la orden desde el alta y se
+  completa ahí; antes dependía de lo que admisión hubiera guardado.
+
+**Qué cambia en el catálogo** (240 filas)
+
+- **58 PDFs pasan a texto** (indicación de texto con la preparación completa). Son las
+  hojas de "Ayuno 8 hs", orina de 24 hs, materia fecal, cultivos, curvas, hormonas por
+  día del ciclo, etc. El texto se extrajo del PDF y se rearmó en párrafos: hay que
+  **leerlos una vez** desde Configuración → Requerimientos. Ahora viajan completos a
+  bitra (antes iba sólo el título). "PAPP-A y βhCG libre" no tenía PDF en ningún lado: el
+  texto es nuevo (semana 9 a 13) y hay que confirmarlo.
+- **26 PDFs cambian de naturaleza**: 15 formularios y 11 consentimientos pasan de
+  "indicación" a **requisito administrativo imprimible** (se imprimen y adjuntan en
+  admisión; no viajan a bitra como preparación). Falta el PDF de "84 CONS INF BRCA" en el
+  servidor.
+- **4 PDFs siguen como indicación imprimible**: urocultivo (variantes por paciente),
+  estimulación con ACTH, estimulación de TSH y el listado de drogas (TR_BLASTICA).
+- **25 MENSAJE_* pasan a aviso al operador** con título corto (el texto original queda en
+  la descripción) y **6 siguen como confirmación**.
+- **14 filas dadas de baja**: 6 de prueba del sistema (`PRUEBA*`, `pruebas`, `ENC_PRUEBAS`)
+  y 8 que CEBAC ya tenía deshabilitadas en Labcore (`apto=0`: MENSAJE_003, 004, 005, 007,
+  030, 031, 032, 033).
+- **6 preguntas repetidas unificadas**: las tres de "cómo recolectó el urocultivo" quedan
+  en ENC_015 con las opciones de las tres; peso (ENC_093, ENC_70b) en ENC_007_PESO y altura
+  (ENC_094, ENC_71) en ENC_008_ALTURA, cada estudio con su prueba destino. Las repetidas
+  quedan inactivas con la nota "Unificada en …".
+
+**Pendiente de CEBAC**
+
+- Leer los 58 textos y corregir redacción; decidir si "Ayuno 8 hs", "Ayuno 8 hs tiroides"
+  y "Ayuno 8 hs PSA" se dejan como tres o como una con nota.
+- Revisar los 25 avisos: título, severidad y si alguno debería frenar la admisión.
+- Vincular ENC_015 (urocultivo unificada) a los estudios de urocultivo: hoy ninguna de las
+  tres versiones estaba vinculada a un estudio.
+- Los 8 vínculos encuesta→prueba sin prueba (HLA del 666303 y los de los estudios de
+  prueba), y el PDF faltante del consentimiento BRCA.
+- Lo de la toma de muestras: hoy todo quedó en etapa "admisión" porque en Labcore nada
+  estaba marcado para la toma (`ei_tm` vacío). Si hay preguntas que se hacen en el box,
+  cambiarles la etapa.
+
+---
+
 ## Próximos pasos propuestos
 
 El detalle está en el informe "Coberturas CEBAC QA", sección "Próximos pasos".

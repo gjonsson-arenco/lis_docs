@@ -524,7 +524,16 @@ Campos permitidos:
 
 Notas sobre `requirements`:
 - Si `requirements` se envia en `PATCH`, backend reemplaza la lista actual completa.
-- `value` es opcional y se usa para requerimientos de tipo `data`.
+- `value` es opcional y se usa para requerimientos de tipo `data`. Admision
+  manda ademas las indicaciones al paciente con `delivered | pending`, los
+  avisos (`info`) con `viewed` y los imprimibles con `printed | pending`.
+- Lo que los estudios de la orden preguntan en la toma de muestras (tipos
+  `data` con `stage` `sampling` o `both`) lo abre el backend solo, con `value`
+  nulo, al crear la orden, al agregar un estudio y al reemplazar la lista
+  (`OrderRequirementProvisioner`). La toma de muestras lee `order.requirements`
+  y completa esas filas con `PUT /orders/{order}/requirements`.
+- El detalle de la orden devuelve por requerimiento `category`, `type`,
+  `severity`, `stage`, `blocking`, `description` y `layout` del tipo.
 
 ### Resolucion de requerimientos
 
@@ -537,11 +546,16 @@ prueba de ese estudio en la que se carga la respuesta al crear la orden
 (`tests.result_text` / `result_number`, ver `RequirementResultWriter`), y que
 viaja a los proveedores como `studies[].tests[].result`. Cada item trae `category`
 (`indication|administrative|technical`), `type` (`info|data|printable`),
-`severity` (solo en `indication`) y `layout`.
+`severity` (indicaciones y avisos tipo `info`), `stage`
+(`admission|sampling|both`), `blocking` (si frena el paso mientras no este
+resuelto), `description` (texto largo: la preparacion completa en las
+indicaciones de texto) y `layout`.
 
 Body opcional `categories: []` para acotar el alcance; si se omite devuelve
-todas las categorias. Admision pide `["administrative"]` y toma de muestras
-`["technical"]`.
+todas las categorias. Admision no lo manda: muestra las indicaciones
+(categoria `indication`) para entregarlas y resuelve lo que tenga `stage`
+`admission` o `both`; lo de `sampling` queda para la toma de muestras. El
+dialogo de indicaciones de las ordenes medicas pide `["indication"]`.
 
 ### Documento de un requerimiento imprimible
 
